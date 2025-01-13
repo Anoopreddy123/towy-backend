@@ -9,7 +9,16 @@ import { authRouter } from './routes/authRoutes';
 const app = express();
 const port = process.env.PORT || 4000;
 
-app.use(cors());
+app.use(cors({
+    origin: [
+        'http://localhost:3000',
+        'https://towy-ui.vercel.app',
+        '*'  // Temporarily allow all origins for testing
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
 app.use(express.json());
 app.use('/api/users', userRouter);
 app.use('/api/services', serviceRouter);

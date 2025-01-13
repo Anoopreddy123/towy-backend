@@ -18,6 +18,7 @@ import { authenticateToken } from '../middleware/auth';
 const router = Router();
 
 // Service request routes
+router.get('/public/providers', getAvailableProviders);
 router.post('/request', authenticateToken, createServiceRequest);
 router.get('/providers', authenticateToken, getAvailableProviders);
 router.get('/user-requests', authenticateToken, getUserRequests);
