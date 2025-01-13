@@ -1,0 +1,38 @@
+import nodemailer from 'nodemailer';
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD // Use an App Password if using Gmail
+    }
+});
+
+export const sendNotificationEmail = async (
+    to: string,
+    serviceDetails: {
+        type: string;
+        location: string;
+        description?: string;
+        vehicleType: string;
+    }
+) => {
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to,
+        subject: 'New Service Request Available',
+        html: `
+            <h2>New Service Request</h2>
+            <p>A new service request is available in your area:</p>
+            <ul>
+                <li><strong>Service Type:</strong> ${serviceDetails.type}</li>
+                <li><strong>Location:</strong> ${serviceDetails.location}</li>
+                <li><strong>Vehicle Type:</strong> ${serviceDetails.vehicleType}</li>
+                ${serviceDetails.description ? `<li><strong>Description:</strong> ${serviceDetails.description}</li>` : ''}
+            </ul>
+            <p>Please log in to your dashboard to accept this request.</p>
+        `
+    };
+
+    return transporter.sendMail(mailOptions);
+}; 
