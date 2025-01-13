@@ -9,16 +9,13 @@ import { authRouter } from './routes/authRoutes';
 const app = express();
 const port = process.env.PORT || 4000;
 
-app.use(cors({
-    origin: '*',  // For testing, allow all origins
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+// Simpler CORS setup
+app.use(cors());  // Allow all origins for now
+
 app.use(express.json());
+app.use('/auth', authRouter);
 app.use('/users', userRouter);
 app.use('/services', serviceRouter);
-app.use('/auth', authRouter);
 
 AppDataSource.initialize()
     .then(() => {
