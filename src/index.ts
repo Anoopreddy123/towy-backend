@@ -10,19 +10,15 @@ const app = express();
 const port = process.env.PORT || 4000;
 
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://towy-ui.vercel.app',
-        '*'  // Temporarily allow all origins for testing
-    ],
+    origin: '*',  // For testing, allow all origins
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
 app.use(express.json());
-app.use('/api/users', userRouter);
-app.use('/api/services', serviceRouter);
-app.use('/api/auth', authRouter);
+app.use('/users', userRouter);
+app.use('/services', serviceRouter);
+app.use('/auth', authRouter);
 
 AppDataSource.initialize()
     .then(() => {
