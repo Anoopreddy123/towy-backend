@@ -11,7 +11,11 @@ const port = process.env.PORT || 4000;
 
 // Configure CORS
 const corsOptions = {
-    origin: ['http://localhost:3000', 'https://towy-ui.vercel.app'], // Allow both local and production
+    origin: [
+        'http://localhost:3000',
+        'https://towy-ui.vercel.app',
+        'https://towy-backend-hwst0kux4-anoops-projects-e49f75e4.vercel.app'
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
