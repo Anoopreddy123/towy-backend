@@ -14,7 +14,7 @@ const corsOptions = {
     origin: [
         'http://localhost:3000',
         'https://towy-ui.vercel.app',
-        'https://towy-arwqbugt8-anoops-projects-e49f75e4.vercel.app'
+        /\.vercel\.app$/  // This regex pattern
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
