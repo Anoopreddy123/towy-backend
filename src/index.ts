@@ -30,8 +30,11 @@ app.use('/services', serviceRouter);
 AppDataSource.initialize()
     .then(() => {
         console.log("Database connected");
+        console.log("Loaded entities:", AppDataSource.entityMetadatas.map(e => e.name));
     })
-    .catch((error) => console.log(error));
+    .catch((error) => {
+        console.error("Database connection error:", error);
+    });
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);

@@ -1,7 +1,6 @@
 import { DataSource } from 'typeorm';
 import { User } from "../models/User";
 import { ServiceRequest } from "../models/ServiceRequest";
-import path from 'path';
 
 export const AppDataSource = new DataSource({
     type: "postgres",
@@ -10,12 +9,8 @@ export const AppDataSource = new DataSource({
         rejectUnauthorized: false
     },
     synchronize: true,
-    logging: false,
-    entities: [
-        path.join(__dirname, '..', 'models', '*.{ts,js}'),
-        User,
-        ServiceRequest
-    ],
-    subscribers: [],
-    migrations: []
+    logging: true,
+    entities: [User, ServiceRequest],
+    migrations: [],
+    subscribers: []
 }); 
