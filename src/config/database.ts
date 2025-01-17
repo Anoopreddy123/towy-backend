@@ -9,8 +9,11 @@ export const AppDataSource = new DataSource({
     ssl: {
         rejectUnauthorized: false
     },
-    synchronize: true,
+    synchronize: false,
     entities: [User, ServiceRequest],
-    migrationsRun: false,
-    logging: true
+    migrationsRun: true,
+    logging: false,
+    extra: {
+        ssl: true
+    }
 }); 
