@@ -9,7 +9,7 @@ const userRepository = AppDataSource.getRepository(User);
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
     try {
-        // Wait for DataSource to be initialized
+
         if (!AppDataSource.isInitialized) {
             await AppDataSource.initialize();
         }
@@ -48,14 +48,23 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
             })
         });
 
-        await userRepository.save(user);
+        const savedUser = await userRepository.save(user);
+        console.log("User saved:", { id: savedUser.id, email: savedUser.email, role: savedUser.role });
 
         res.status(201).json({
-            message: "User created successfully"
+            message: "User created successfully",
+            user: {
+                id: savedUser.id,
+                email: savedUser.email,
+                role: savedUser.role
+            }
         });
     } catch (error) {
-        console.error("Signup error:", error);
-        res.status(500).json({ message: "Error creating user" });
+        console.error("Signup error details:", error);
+        res.status(500).json({ 
+            message: "Error creating user",
+            error: error.message
+        });
     }
 };
 
