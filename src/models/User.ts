@@ -22,7 +22,7 @@ export class User {
     role!: string;
 
     @Column({
-        type: 'point',
+        type: "point",
         nullable: true,
         transformer: {
             to: (value: { lat: number; lng: number } | null) => {
@@ -31,12 +31,10 @@ export class User {
             },
             from: (value: any) => {
                 if (!value) return null;
-                // Handle both string and object formats
-                if (typeof value === 'string') {
-                    const [lng, lat] = value.slice(1, -1).split(',').map(Number);
+                if (typeof value === "string") {
+                    const [lng, lat] = value.slice(1, -1).split(",").map(Number);
                     return { lat, lng };
                 }
-                // Handle PostgreSQL point format
                 if (value.x !== undefined && value.y !== undefined) {
                     return { lat: value.y, lng: value.x };
                 }
@@ -46,7 +44,7 @@ export class User {
     })
     location?: { lat: number; lng: number };
 
-    @Column('simple-array', { nullable: true })
+    @Column("simple-array", { nullable: true })
     services?: string[];
 
     @Column({ nullable: true })

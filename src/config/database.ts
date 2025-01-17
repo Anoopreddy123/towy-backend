@@ -12,8 +12,10 @@ export const AppDataSource = new DataSource({
     synchronize: false,
     entities: [User, ServiceRequest],
     migrationsRun: true,
-    logging: false,
+    logging: true,
     extra: {
         ssl: true
     }
-}); 
+});
+
+// Don't initialize here - we'll do it in index.ts 

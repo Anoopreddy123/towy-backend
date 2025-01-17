@@ -4,10 +4,16 @@ import { User } from '../models/User';
 import { hash, compare } from 'bcrypt';
 import { sign } from 'jsonwebtoken';
 
+// Initialize repository after DataSource is ready
 const userRepository = AppDataSource.getRepository(User);
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
     try {
+        // Wait for DataSource to be initialized
+        if (!AppDataSource.isInitialized) {
+            await AppDataSource.initialize();
+        }
+
         const { 
             name, 
             email, 
@@ -18,7 +24,6 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
             services 
         } = req.body;
 
-        // Check if user already exists
         const existingUser = await userRepository.findOne({ 
             where: { email } 
         });
@@ -30,13 +35,12 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
 
         const hashedPassword = await hash(password, 10);
 
-        // Create user with conditional provider fields
         const user = userRepository.create({
             name,
             email,
             password: hashedPassword,
             role,
-            ...(role === 'provider' && {
+            ...(role === "provider" && {
                 businessName,
                 phoneNumber,
                 services: services ? [services] : [],
@@ -50,37 +54,26 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
             message: "User created successfully"
         });
     } catch (error) {
-        console.error('Signup error:', error);
+        console.error("Signup error:", error);
         res.status(500).json({ message: "Error creating user" });
     }
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
+        // Wait for DataSource to be initialized
+        if (!AppDataSource.isInitialized) {
+            await AppDataSource.initialize();
+        }
+
         const { email, password, role } = req.body;
-        
-        console.log('Login attempt:', { email, role });
         
         const user = await userRepository.findOne({ 
             where: { 
                 email,
                 ...(role && { role })
-            },
-            select: [
-                'id',
-                'email', 
-                'password',
-                'name',
-                'role',
-                'businessName',
-                'phoneNumber',
-                'services',
-                'location',
-                'isAvailable'
-            ]
+            }
         });
-
-        console.log('User found:', user ? 'Yes' : 'No');
 
         if (!user) {
             res.status(401).json({ message: "Invalid credentials" });
@@ -88,7 +81,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         }
 
         const validPassword = await compare(password, user.password);
-        console.log('Password valid:', validPassword);
 
         if (!validPassword) {
             res.status(401).json({ message: "Invalid credentials" });
@@ -97,8 +89,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
         const token = sign(
             { userId: user.id, role: user.role },
-            process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '24h' }
+            process.env.JWT_SECRET || "your-secret-key",
+            { expiresIn: "24h" }
         );
 
         const { password: _, ...userWithoutPassword } = user;
@@ -109,8 +101,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             user: userWithoutPassword
         });
     } catch (error) {
-        console.error('Login error details:', error);
-        res.status(500).json({ message: "Error during login", error: error.message });
+        console.error("Login error:", error);
+        res.status(500).json({ message: "Error during login" });
     }
 };
 
