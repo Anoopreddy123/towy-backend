@@ -61,26 +61,41 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
 
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
-        // Wait for DataSource to be initialized
         if (!AppDataSource.isInitialized) {
             await AppDataSource.initialize();
         }
 
         const { email, password, role } = req.body;
-        
+        console.log("Login attempt:", { email, role });
+
         const user = await userRepository.findOne({ 
             where: { 
                 email,
                 ...(role && { role })
-            }
+            },
+            select: [
+                "id",
+                "email",
+                "password",  // Make sure password is selected
+                "name",
+                "role",
+                "businessName",
+                "phoneNumber",
+                "services",
+                "location",
+                "isAvailable"
+            ]
         });
 
+        console.log("User found:", user ? "Yes" : "No");
+        
         if (!user) {
             res.status(401).json({ message: "Invalid credentials" });
             return;
         }
 
         const validPassword = await compare(password, user.password);
+        console.log("Password valid:", validPassword);
 
         if (!validPassword) {
             res.status(401).json({ message: "Invalid credentials" });
@@ -101,8 +116,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             user: userWithoutPassword
         });
     } catch (error) {
-        console.error("Login error:", error);
-        res.status(500).json({ message: "Error during login" });
+        console.error("Login error details:", error);
+        res.status(500).json({ 
+            message: "Error during login",
+            error: error.message  // Include error message for debugging
+        });
     }
 };
 
