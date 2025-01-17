@@ -76,7 +76,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             select: [
                 "id",
                 "email",
-                "password",  // Make sure password is selected
+                "password",
                 "name",
                 "role",
                 "businessName",
@@ -88,6 +88,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         });
 
         console.log("User found:", user ? "Yes" : "No");
+        console.log("Stored hashed password:", user?.password);
+        console.log("Provided password:", password);
         
         if (!user) {
             res.status(401).json({ message: "Invalid credentials" });
@@ -95,7 +97,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         }
 
         const validPassword = await compare(password, user.password);
-        console.log("Password valid:", validPassword);
+        console.log("Password comparison result:", validPassword);
 
         if (!validPassword) {
             res.status(401).json({ message: "Invalid credentials" });
