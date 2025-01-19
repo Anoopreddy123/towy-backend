@@ -10,11 +10,11 @@ export class CreateTables1234567890 implements MigrationInterface {
                 CONSTRAINT "PK_user" PRIMARY KEY ("id")
             )
         `);
-        // ... create other tables
+       
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`DROP TABLE "user"`);
-        // ... drop other tables
+       
     }
 } 

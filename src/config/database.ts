@@ -3,7 +3,7 @@ import { DataSource } from "typeorm";
 import { User } from "../models/User";
 import { ServiceRequest } from "../models/ServiceRequest";
 
-console.log("Connecting to database:", process.env.DATABASE_URL?.split("@")[1]); // Log only the host part for security
+console.log("Connecting to database:", process.env.DATABASE_URL?.split("@")[1]); 
 
 export const AppDataSource = new DataSource({
     type: "postgres",
@@ -20,4 +20,3 @@ export const AppDataSource = new DataSource({
     }
 });
 
-// Don't initialize here - we'll do it in index.ts 
