@@ -3,153 +3,157 @@ import { AppDataSource } from '../config/database';
 import { User } from '../models/User';
 import { hash, compare } from 'bcrypt';
 import { sign } from 'jsonwebtoken';
+import { GeoService } from '../config/geo-services';
 
 // Initialize repository after DataSource is ready
 const userRepository = AppDataSource.getRepository(User);
+const geoService = new GeoService();
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
     try {
+        const { email, password, role, latitude, longitude, businessName } = req.body;
 
-        if (!AppDataSource.isInitialized) {
-            await AppDataSource.initialize();
-        }
-
-        const { 
-            name, 
-            email, 
-            password, 
-            role,
-            businessName,
-            phoneNumber,
-            services 
-        } = req.body;
-
-        const existingUser = await userRepository.findOne({ 
-            where: { email } 
-        });
-
-        if (existingUser) {
-            res.status(400).json({ message: "User already exists" });
-            return;
-        }
-
-        const hashedPassword = await hash(password, 10);
-
-        const user = userRepository.create({
-            name,
-            email,
-            password: hashedPassword,
-            role,
-            ...(role === "provider" && {
+        if (role === 'provider') {
+            // Providers go to GeoService DB
+            const provider = await geoService.registerProvider({
+                email,
+                password,
                 businessName,
-                phoneNumber,
-                services: services ? [services] : [],
-                isAvailable: true
-            })
-        });
-
-        const savedUser = await userRepository.save(user);
-        console.log("User saved:", { id: savedUser.id, email: savedUser.email, role: savedUser.role });
-
-        res.status(201).json({
-            message: "User created successfully",
-            user: {
-                id: savedUser.id,
-                email: savedUser.email,
-                role: savedUser.role
-            }
-        });
+                latitude,
+                longitude,
+                services: ['towing']
+            });
+            res.status(201).json({ message: "Provider registered", provider });
+        } else {
+            // Regular users go to main DB
+            const user = await userRepository.save({
+                email,
+                password: await hash(password, 10),
+                role: 'user'
+            });
+            res.status(201).json({ message: "User registered", user });
+        }
     } catch (error) {
-        console.error("Signup error details:", error);
-        res.status(500).json({ 
-            message: "Error creating user",
-            error: error.message
-        });
+        res.status(500).json({ error: error });
     }
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
-        if (!AppDataSource.isInitialized) {
-            await AppDataSource.initialize();
-        }
-
         const { email, password, role } = req.body;
-        console.log("Login attempt:", { email, role });
 
-        const user = await userRepository.findOne({ 
-            where: { 
-                email,
-                ...(role && { role })
-            },
-            select: [
-                "id",
-                "email",
-                "password",
-                "name",
-                "role",
-                "businessName",
-                "phoneNumber",
-                "services",
-                "location",
-                "isAvailable"
-            ]
-        });
+        if (role === 'provider') {
+            // Check GeoService DB for providers
+            const provider = await geoService.loginProvider(email, password);
+            res.json(provider);
+        } else {
+            // Check main DB for users
+            const user = await userRepository.findOne({ where: { email } });
+            console.log("User found:", user ? "Yes" : "No");
+            console.log("Stored hashed password:", user?.password);
+            console.log("Provided password:", password);
+            
+            if (!user) {
+                res.status(401).json({ message: "Invalid credentials" });
+                return;
+            }
 
-        console.log("User found:", user ? "Yes" : "No");
-        console.log("Stored hashed password:", user?.password);
-        console.log("Provided password:", password);
-        
-        if (!user) {
-            res.status(401).json({ message: "Invalid credentials" });
-            return;
+            const validPassword = await compare(password, user.password);
+            console.log("Password comparison result:", validPassword);
+
+            if (!validPassword) {
+                res.status(401).json({ message: "Invalid credentials" });
+                return;
+            }
+
+            const token = sign(
+                { userId: user.id, role: user.role },
+                process.env.JWT_SECRET || "your-secret-key",
+                { expiresIn: "24h" }
+            );
+
+            const { password: _, ...userWithoutPassword } = user;
+
+            res.json({
+                message: "Login successful",
+                token,
+                user: userWithoutPassword
+            });
         }
-
-        const validPassword = await compare(password, user.password);
-        console.log("Password comparison result:", validPassword);
-
-        if (!validPassword) {
-            res.status(401).json({ message: "Invalid credentials" });
-            return;
-        }
-
-        const token = sign(
-            { userId: user.id, role: user.role },
-            process.env.JWT_SECRET || "your-secret-key",
-            { expiresIn: "24h" }
-        );
-
-        const { password: _, ...userWithoutPassword } = user;
-
-        res.json({
-            message: "Login successful",
-            token,
-            user: userWithoutPassword
-        });
     } catch (error) {
-        console.error("Login error details:", error);
-        res.status(500).json({ 
-            message: "Error during login",
-            error: error.message  // Include error message for debugging
-        });
+        res.status(500).json({ error: error });
     }
 };
 
 export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
     try {
-        const user = await userRepository.findOne({
-            where: { id: req.user.id },
-            select: ['id', 'email', 'name', 'role', 'businessName', 'phoneNumber', 'services', 'location', 'isAvailable']
-        });
+        const { id, role } = req.user; // From auth middleware
 
-        if (!user) {
-            res.status(404).json({ message: "User not found" });
-            return;
+        if (role === 'provider') {
+            // Get from GeoService DB
+            const provider = await geoService.getProviderById(id);
+            res.json(provider);
+        } else {
+            // Get from main DB
+            const user = await userRepository.findOne({ where: { id } });
+            res.json(user);
         }
-
-        res.json(user);
     } catch (error) {
-        console.error('Get current user error:', error);
-        res.status(500).json({ message: "Error fetching user" });
+        res.status(500).json({ error: error });
+    }
+};
+
+export const updateProfile = async (req: Request, res: Response) => {
+    try {
+        const { id, role } = req.user;
+        const updates = req.body;
+
+        if (role === 'provider') {
+            // Update in GeoService DB
+            const provider = await geoService.updateProvider(id, updates);
+            res.json(provider);
+        } else {
+            // Update in main DB
+            const user = await userRepository.update(id, updates);
+            res.json(user);
+        }
+    } catch (error) {
+        res.status(500).json({ error: error });
+    }
+};
+
+export const loginProvider = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { email, password } = req.body;
+        const result = await geoService.loginProvider(email, password);
+        
+        // Structure the user data consistently
+        const userData = {
+            id: result.provider.id,
+            name: result.provider.businessName, // Use businessName as the primary name
+            email: result.provider.email,
+            role: 'provider',
+            businessName: result.provider.businessName,
+            services: result.provider.services,
+            location: result.provider.location,
+            isAvailable: result.provider.isAvailable
+        };
+
+        const token = sign(
+            { userId: userData.id, role: 'provider' },
+            process.env.JWT_SECRET || 'your-secret-key',
+            { expiresIn: '24h' }
+        );
+
+        res.json({
+            message: "Login successful",
+            token,
+            user: userData
+        });
+    } catch (error) {
+        console.error('Provider login error:', error);
+        res.status(401).json({ 
+            message: error instanceof Error ? error.message : "Invalid credentials" 
+        });
     }
 }; 

@@ -13,23 +13,23 @@ import {
     getServiceRequest,
     getNearbyRequests
 } from '../controllers/serviceController';
-import { authenticateToken } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
 // Service request routes
 router.get('/public/providers', getAvailableProviders);
-router.post('/request', authenticateToken, createServiceRequest);
-router.get('/providers', authenticateToken, getAvailableProviders);
-router.get('/user-requests', authenticateToken, getUserRequests);
-router.patch('/request/:id/status', authenticateToken, updateServiceStatus);
-router.post('/request/:serviceId/quote', authenticateToken, submitQuote);
-router.get('/request/:serviceId/quotes', authenticateToken, getServiceQuotes);
-router.post('/request/:serviceId/accept-quote', authenticateToken, acceptQuote);
-router.get('/provider/services', authenticateToken, getProviderServices);
-router.get('/nearby-providers', authenticateToken, findNearbyProviders);
-router.post('/notify-provider', authenticateToken, notifyProvider);
-router.get('/request/:id', authenticateToken, getServiceRequest);
-router.get('/nearby-requests', authenticateToken, getNearbyRequests);
+router.post('/request', authMiddleware, createServiceRequest);
+router.get('/providers', authMiddleware, getAvailableProviders);
+router.get('/user-requests', authMiddleware, getUserRequests);
+router.patch('/request/:id/status', authMiddleware, updateServiceStatus);
+router.post('/request/:serviceId/quote', authMiddleware, submitQuote);
+router.get('/request/:serviceId/quotes', authMiddleware, getServiceQuotes);
+router.post('/request/:serviceId/accept-quote', authMiddleware, acceptQuote);
+router.get('/provider/services', authMiddleware, getProviderServices);
+router.get('/nearby-providers', authMiddleware, findNearbyProviders);
+router.post('/notify-provider', authMiddleware, notifyProvider);
+router.get('/request/:id', authMiddleware, getServiceRequest);
+router.get('/nearby-requests', authMiddleware, getNearbyRequests);
 
 export const serviceRouter = router; 

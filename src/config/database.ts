@@ -2,8 +2,9 @@ import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { User } from "../models/User";
 import { ServiceRequest } from "../models/ServiceRequest";
-
-console.log("Connecting to database:", process.env.DATABASE_URL?.split("@")[1]); 
+import dotenv from 'dotenv';
+dotenv.config();
+console.log("Connecting to database:", process.env.DATABASE_URL); 
 
 export const AppDataSource = new DataSource({
     type: "postgres",
