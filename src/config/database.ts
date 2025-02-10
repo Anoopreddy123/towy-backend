@@ -21,3 +21,18 @@ export const AppDataSource = new DataSource({
     }
 });
 
+
+import { Provider } from "../entities/Provider";
+
+
+
+export const GeoDataSource = new DataSource({
+    type: "postgres",
+    url: process.env.GEOSPATIAL_DB_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }, // Connection string for geospatial database
+    synchronize: true,
+    entities: [Provider],
+    logging: ["query", "error"],
+});

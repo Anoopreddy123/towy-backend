@@ -1,10 +1,14 @@
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource, GeoDataSource } from '../config/database';
 import { ServiceRequest, ServiceType } from '../models/ServiceRequest';
 import { User } from '../models/User';
+import { Provider } from "../entities/Provider";
+
 
 const serviceRepository = AppDataSource.getRepository(ServiceRequest);
 const userRepository = AppDataSource.getRepository(User);
+const providerRepository = GeoDataSource.getRepository(Provider);
+
 
 export const createServiceRequest = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -37,15 +41,33 @@ export const createServiceRequest = async (req: Request, res: Response): Promise
 
 export const getAvailableProviders = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { serviceType } = req.query;
+        const { serviceType, latitude, longitude, radius } = req.query;
+
+        // Ensure latitude and longitude are provided
+        if (!latitude || !longitude || !radius) {
+            res.status(400).json({ message: "Latitude, longitude, and radius are required" });
+            return;
+        }
+
         const providers = await userRepository
             .createQueryBuilder("user")
             .where("user.role = :role", { role: "provider" })
             .andWhere("user.services @> ARRAY[:serviceType]", { serviceType })
+            .andWhere(
+                `ST_DWithin(
+                    ST_SetSRID(ST_MakePoint(user.longitude, user.latitude), 4326),
+                    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326),
+                    :radius
+                )`,
+                { longitude, latitude, radius }
+            )
             .getMany();
+
+        console.log("Returning providers:", providers); // This is where the log is printed
 
         res.json(providers);
     } catch (error) {
+        console.error("Error finding service providers:", error);
         res.status(500).json({ message: "Error finding service providers" });
     }
 };
@@ -165,6 +187,7 @@ export const getProviderServices = async (req: Request, res: Response): Promise<
 
 // Add this function to find nearby providers
 export const findNearbyProviders = async (req: Request, res: Response): Promise<void> => {
+ 
     try {
         const { latitude, longitude, serviceType } = req.query;
 
@@ -177,11 +200,21 @@ export const findNearbyProviders = async (req: Request, res: Response): Promise<
         }
 
         console.log('Finding providers with params:', { latitude, longitude, serviceType });
-
-        const providers = await userRepository
-            .createQueryBuilder("user")
-            .where("user.role = :role", { role: "provider" })
-            .andWhere("user.isAvailable = :isAvailable", { isAvailable: true })
+        //await GeoDataSource.initialize();
+        const providerRepository = GeoDataSource.getRepository(Provider);
+console.log("Provider Repository:", providerRepository);
+        const providers = await providerRepository
+            .createQueryBuilder("provider")
+            .where("provider.isAvailable = :isAvailable", { isAvailable: true })
+            .andWhere(
+                `ST_DWithin(
+                    ST_SetSRID(ST_MakePoint(provider.longitude, provider.latitude), 4326),
+                    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326),
+                    50000  -- 50 km radius
+                )`,
+                { longitude, latitude }
+            )
+            .andWhere("provider.services @> ARRAY[:serviceType]", { serviceType })
             .getMany();
 
         console.log('Found providers:', providers);
@@ -194,28 +227,30 @@ export const findNearbyProviders = async (req: Request, res: Response): Promise<
         const nearbyProviders = providers
             .filter(provider => {
                 if (!provider.location) {
-                    console.log(`Provider ${provider.name} has no location`);
+                    console.log(`Provider ${provider.business_name} has no location`);
                     return false;
                 }
                 return true;
             })
+         
+           // console.log(point); // This will 
             .map(provider => {
-                const distance = calculateDistance(
-                    Number(latitude),
-                    Number(longitude),
-                    provider.location!.lat,
-                    provider.location!.lng
-                );
-                console.log(`Provider ${provider.name} is ${distance}km away`);
+                // const distance = calculateDistance(
+                //     Number(latitude),
+                //     Number(longitude),
+                //     provider.,  // Assuming these fields exist in the Provider entity
+                //     provider.longitude
+                // );
+                const distance = provider.location;
+                console.log(`Provider ${provider.business_name} is ${distance}km away`);
                 return { ...provider, password: undefined, distance };
-            })
-            .filter(provider => {
-                const isNearby = provider.distance <= 50;
-                const hasService = provider.services?.includes(serviceType as string);
-                console.log(`Provider ${provider.name}: nearby=${isNearby}, hasService=${hasService}`);
-                return isNearby && hasService;
-            })
-            .sort((a, b) => a.distance - b.distance);
+            });
+            // .filter(provider => {
+            //     const hasService = provider.services?.includes(serviceType as string);
+            //     console.log(`Provider ${provider.name}: hasService=${hasService}`);
+            //     return hasService;
+            // })
+            // .sort((a, b) => a.distance - b.distance);
 
         console.log('Returning providers:', nearbyProviders);
         res.json(nearbyProviders);
