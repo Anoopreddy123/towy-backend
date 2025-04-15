@@ -42,7 +42,7 @@ AppDataSource.initialize()
         // Basic CORS for public routes
         const publicCors = cors({
             origin: '*',
-            methods: ['GET', 'OPTIONS'],
+            methods: ['GET', 'POST', 'OPTIONS'],
             allowedHeaders: ['Content-Type']
         });
 
