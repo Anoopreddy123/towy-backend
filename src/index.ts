@@ -26,26 +26,48 @@ AppDataSource.initialize()
             // Continue app startup even if GeoService fails
         }
 
-        // Configure CORS
+        // Define CORS options for different scenarios
         const corsOptions = {
             origin: [
-                "http://localhost:3000",
-                "http://localhost:3001",
-                "https://towy-ui.vercel.app",
-                "https://towy-backend.vercel.app",
+                'https://towy-ui.vercel.app',
+                'http://localhost:3000',
                 /\.vercel\.app$/
             ],
-            methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-            allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-            exposedHeaders: ["Content-Type", "Authorization"],
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
             credentials: true,
-            preflightContinue: false,
             optionsSuccessStatus: 204
         };
 
-        // Apply CORS middleware before other middleware
-        app.use(cors(corsOptions));
+        // Basic CORS for public routes
+        const publicCors = cors({
+            origin: '*',
+            methods: ['GET', 'OPTIONS'],
+            allowedHeaders: ['Content-Type']
+        });
+
+        // Secure CORS for authenticated routes
+        const secureCors = cors(corsOptions);
+
+        // Apply route-specific CORS
         app.use(express.json());
+
+        // Public routes
+        app.get('/health', publicCors, (req, res) => {
+            res.json({ status: 'healthy' });
+        });
+
+        // Secure routes with specific CORS
+        app.use('/auth/provider/login', secureCors);
+        app.use('/auth/login', secureCors);
+        app.use('/auth/signup', secureCors);
+        app.use('/services', secureCors);
+        app.use('/users', secureCors);
+
+        // Handle OPTIONS preflight requests
+        app.options('*', secureCors);
+
+        // Your existing route handlers
         app.use("/auth", authRouter);
         app.use("/users", userRouter);
         app.use("/services", serviceRouter);
