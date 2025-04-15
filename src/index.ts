@@ -14,8 +14,26 @@ const port = process.env.PORT || 4000;
 
 // Initialize database before setting up routes
 console.log("Database URL:", process.env.DATABASE_URL);
-AppDataSource.initialize()
-    .then(() => { 
+
+// CORS configuration
+const corsOptions = {
+    origin: [
+        'http://localhost:3000',
+        'https://towy-ui.vercel.app',
+        /\.vercel\.app$/
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    credentials: true
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// Database initialization
+const initializeDB = async () => {
+    try {
+        await AppDataSource.initialize();
         console.log("Database connected");
         console.log("Loaded entities:", AppDataSource.entityMetadatas.map(e => e.name));
         try {
@@ -25,58 +43,40 @@ AppDataSource.initialize()
             console.error("GeoService initialization failed:", error);
             // Continue app startup even if GeoService fails
         }
+    } catch (error) {
+        console.error("Database connection error:", error);
+        throw error;
+    }
+};
 
-        // Define CORS options for different scenarios
-        const corsOptions = {
-            origin: [
-                'https://towy-ui.vercel.app',
-                'http://localhost:3000',
-                /\.vercel\.app$/
-            ],
-            methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-            credentials: true,
-            optionsSuccessStatus: 204
-        };
+// Routes
+app.use("/auth", authRouter);
+app.use("/users", userRouter);
+app.use("/services", serviceRouter);
 
-        // Basic CORS for public routes
-        const publicCors = cors({
-            origin: '*',
-            methods: ['GET', 'POST', 'OPTIONS'],
-            allowedHeaders: ['Content-Type']
-        });
+// Health check endpoint
+app.get("/health", (req, res) => {
+    res.json({ status: "healthy" });
+});
 
-        // Secure CORS for authenticated routes
-        const secureCors = cors(corsOptions);
-
-        // Apply route-specific CORS
-        app.use(express.json());
-
-        // Public routes
-        app.get('/health', publicCors, (req, res) => {
-            res.json({ status: 'healthy' });
-        });
-
-        // Secure routes with specific CORS
-        app.use('/auth/provider/login', secureCors);
-        app.use('/auth/login', secureCors);
-        app.use('/auth/signup', secureCors);
-        app.use('/services', secureCors);
-        app.use('/users', secureCors);
-
-        // Handle OPTIONS preflight requests
-        app.options('*', secureCors);
-
-        // Your existing route handlers
-        app.use("/auth", authRouter);
-        app.use("/users", userRouter);
-        app.use("/services", serviceRouter);
-
+// Initialize DB and start server for local development
+if (process.env.NODE_ENV !== 'production') {
+    initializeDB().then(() => {
         app.listen(port, () => {
             console.log(`Server running on port ${port}`);
         });
-    })
-    .catch((error: any) => {
-        console.error("Database connection error:", error);
-        process.exit(1);
     });
+}
+
+// For Vercel deployment
+export default async function handler(req: any, res: any) {
+    try {
+        if (!AppDataSource.isInitialized) {
+            await initializeDB();
+        }
+        return app(req, res);
+    } catch (error) {
+        console.error('Handler error:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
