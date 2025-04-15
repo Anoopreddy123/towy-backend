@@ -30,15 +30,20 @@ AppDataSource.initialize()
         const corsOptions = {
             origin: [
                 "http://localhost:3000",
+                "http://localhost:3001",
                 "https://towy-ui.vercel.app",
                 /\.vercel\.app$/
             ],
-            methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-            allowedHeaders: ["Content-Type", "Authorization"],
-            credentials: true
+            methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+            allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+            exposedHeaders: ["Content-Type", "Authorization"],
+            credentials: true,
+            preflightContinue: false,
+            optionsSuccessStatus: 204
         };
 
         app.use(cors(corsOptions));
+        // used to populate the JSON from client in tothe request body.
         app.use(express.json());
         app.use("/auth", authRouter);
         app.use("/users", userRouter);
