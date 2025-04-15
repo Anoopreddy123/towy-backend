@@ -32,6 +32,7 @@ AppDataSource.initialize()
                 "http://localhost:3000",
                 "http://localhost:3001",
                 "https://towy-ui.vercel.app",
+                "https://towy-backend.vercel.app",
                 /\.vercel\.app$/
             ],
             methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -42,8 +43,8 @@ AppDataSource.initialize()
             optionsSuccessStatus: 204
         };
 
+        // Apply CORS middleware before other middleware
         app.use(cors(corsOptions));
-        // used to populate the JSON from client in tothe request body.
         app.use(express.json());
         app.use("/auth", authRouter);
         app.use("/users", userRouter);
