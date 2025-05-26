@@ -26,10 +26,11 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
             res.status(201).json({ message: "Provider registered", provider });
         } else {
             // Regular users go to main DB
-            const user = await userRepository.save({
+            const user = await userRepository.save({     
+                name: req.body.name,
                 email,
                 password: await hash(password, 10),
-                role: 'user'
+                role: 'customer'
             });
             res.status(201).json({ message: "User registered", user });
         }
