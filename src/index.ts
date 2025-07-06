@@ -35,20 +35,23 @@ app.get('/health', (req, res) => {
     res.json({ status: 'healthy', message: 'Server is running' });
 });
 
-// Initialize database and routes
-async function initializeServer() {
+// Test endpoint (always available)
+app.get('/test', (req, res) => {
+    res.json({ message: 'Backend is working!' });
+});
+
+// Always register routes (they will handle database errors internally)
+app.use("/auth", authRouter);
+app.use("/users", userRouter);
+app.use("/services", serviceRouter);
+
+// Initialize database
+async function initializeDatabase() {
     try {
         console.log("Database URL:", process.env.DATABASE_URL);
         await AppDataSource.initialize();
         console.log("Database connected");
         console.log("Loaded entities:", AppDataSource.entityMetadatas.map(e => e.name));
-
-        // Apply routes
-        app.use("/auth", authRouter);
-        app.use("/users", userRouter);
-        app.use("/services", serviceRouter);
-
-        console.log("Routes initialized successfully");
     } catch (error) {
         console.error("Failed to initialize database:", error);
         // Don't exit - let server continue with basic endpoints
@@ -59,5 +62,5 @@ async function initializeServer() {
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
     // Initialize database after server starts
-    initializeServer();
+    initializeDatabase();
 });

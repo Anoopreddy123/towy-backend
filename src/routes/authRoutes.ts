@@ -4,12 +4,17 @@ import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
-router.post('/signup', signup);
-router.post('/login', login);
+// Add error handling wrapper
+const asyncHandler = (fn: Function) => (req: any, res: any, next: any) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+router.post('/signup', asyncHandler(signup));
+router.post('/login', asyncHandler(login));
 router.post('/provider/login', loginProvider);
-router.get('/me', authMiddleware, getCurrentUser);
+router.get('/me', authMiddleware, asyncHandler(getCurrentUser));
 router.get('/test', (req, res) => {
     res.json({ message: 'Backend is working!' });
 });
 
-export const authRouter = router; 
+export { router as authRouter }; 
