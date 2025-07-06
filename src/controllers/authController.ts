@@ -6,15 +6,39 @@ import { sign } from 'jsonwebtoken';
 import { GeoService } from '../config/geo-services';
 
 // Initialize repository after DataSource is ready
-const userRepository = AppDataSource.getRepository(User);
-const geoService = new GeoService();
+let userRepository: any = null;
+let geoService: any = null;
+
+// Initialize repositories when database is ready
+function initializeRepositories() {
+    if (AppDataSource.isInitialized) {
+        userRepository = AppDataSource.getRepository(User);
+        geoService = new GeoService();
+    }
+}
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
     try {
+        // Check if database is initialized
+        if (!AppDataSource.isInitialized) {
+            res.status(503).json({ 
+                error: "Database not available. Please try again later." 
+            });
+            return;
+        }
+
+        // Initialize repositories if needed
+        if (!userRepository) {
+            initializeRepositories();
+        }
+
         const { email, password, role, latitude, longitude, businessName } = req.body;
 
         if (role === 'provider') {
             // Providers go to GeoService DB
+            if (!geoService) {
+                geoService = new GeoService();
+            }
             const provider = await geoService.registerProvider({
                 email,
                 password,
@@ -35,16 +59,35 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
             res.status(201).json({ message: "User registered", user });
         }
     } catch (error) {
-        res.status(500).json({ error: error });
+        console.error('Signup error:', error);
+        res.status(500).json({ 
+            error: "Database error. Please try again later." 
+        });
     }
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
+        // Check if database is initialized
+        if (!AppDataSource.isInitialized) {
+            res.status(503).json({ 
+                error: "Database not available. Please try again later." 
+            });
+            return;
+        }
+
+        // Initialize repositories if needed
+        if (!userRepository) {
+            initializeRepositories();
+        }
+
         const { email, password, role } = req.body;
 
         if (role === 'provider') {
             // Check GeoService DB for providers
+            if (!geoService) {
+                geoService = new GeoService();
+            }
             const provider = await geoService.loginProvider(email, password);
             res.json(provider);
         } else {
@@ -82,16 +125,35 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             });
         }
     } catch (error) {
-        res.status(500).json({ error: error });
+        console.error('Login error:', error);
+        res.status(500).json({ 
+            error: "Database error. Please try again later." 
+        });
     }
 };
 
 export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
     try {
+        // Check if database is initialized
+        if (!AppDataSource.isInitialized) {
+            res.status(503).json({ 
+                error: "Database not available. Please try again later." 
+            });
+            return;
+        }
+
+        // Initialize repositories if needed
+        if (!userRepository) {
+            initializeRepositories();
+        }
+
         const { id, role } = req.user; // From auth middleware
 
         if (role === 'provider') {
             // Get from GeoService DB
+            if (!geoService) {
+                geoService = new GeoService();
+            }
             const provider = await geoService.getProviderById(id);
             res.json(provider);
         } else {
@@ -100,7 +162,10 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
             res.json(user);
         }
     } catch (error) {
-        res.status(500).json({ error: error });
+        console.error('Get current user error:', error);
+        res.status(500).json({ 
+            error: "Database error. Please try again later." 
+        });
     }
 };
 
@@ -126,6 +191,11 @@ export const updateProfile = async (req: Request, res: Response) => {
 export const loginProvider = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email, password } = req.body;
+        
+        if (!geoService) {
+            geoService = new GeoService();
+        }
+        
         const result = await geoService.loginProvider(email, password);
         
         // Structure the user data consistently
