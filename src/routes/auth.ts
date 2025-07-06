@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import { GeoService } from '../config/geo-services';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -8,18 +7,7 @@ import { loginProvider } from '../controllers/authController';
 const router = express.Router();
 const geoService = new GeoService();
 
-const corsOptions = {
-    origin: [
-        'https://towy-ui.vercel.app',
-        'http://localhost:3000',
-        /\.vercel\.app$/
-    ],
-    methods: ['POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    credentials: true
-};
-
-router.post('/signup', cors(corsOptions), async (req, res) => {
+router.post('/signup', async (req, res) => {
     try {
         const { email, password, businessName, services } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -39,6 +27,6 @@ router.post('/signup', cors(corsOptions), async (req, res) => {
     }
 });
 
-router.post('/provider/login', cors(corsOptions), loginProvider);
+router.post('/provider/login', loginProvider);
 
-export default router;
+export { router as authRouter };

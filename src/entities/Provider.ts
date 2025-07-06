@@ -1,10 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import { v4 as uuidv4 } from 'uuid';
 
 @Entity("providers") // Name of the table in the database
 export class Provider {
     @PrimaryGeneratedColumn("uuid") // Use UUID as the primary key
-    id: string;
+    id!: string;
 
     @Column("text")
     email!: string;
@@ -29,8 +28,4 @@ export class Provider {
 
     @CreateDateColumn({ type: "timestamp without time zone" })
     created_at!: Date;
-
-    constructor() {
-        this.id = uuidv4(); // Automatically generate a UUID for new providers
-    }
 } 

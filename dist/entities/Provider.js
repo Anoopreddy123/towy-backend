@@ -11,11 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Provider = void 0;
 const typeorm_1 = require("typeorm");
-const uuid_1 = require("uuid");
 let Provider = class Provider {
-    constructor() {
-        this.id = (0, uuid_1.v4)(); // Automatically generate a UUID for new providers
-    }
 };
 exports.Provider = Provider;
 __decorate([
@@ -59,6 +55,4 @@ __decorate([
 ], Provider.prototype, "created_at", void 0);
 exports.Provider = Provider = __decorate([
     (0, typeorm_1.Entity)("providers") // Name of the table in the database
-    ,
-    __metadata("design:paramtypes", [])
 ], Provider);
