@@ -14,7 +14,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.loginProvider = exports.updateProfile = exports.getCurrentUser = exports.login = exports.signup = void 0;
 const database_1 = require("../config/database");
 const User_1 = require("../models/User");
-const bcrypt_1 = require("bcrypt");
+const bcryptjs_1 = require("bcryptjs");
 const jsonwebtoken_1 = require("jsonwebtoken");
 const geo_services_1 = require("../config/geo-services");
 // Initialize repository after DataSource is ready
@@ -40,7 +40,7 @@ const signup = async (req, res) => {
             const user = await userRepository.save({
                 name: req.body.name,
                 email,
-                password: await (0, bcrypt_1.hash)(password, 10),
+                password: await (0, bcryptjs_1.hash)(password, 10),
                 role: 'customer'
             });
             res.status(201).json({ message: "User registered", user });
@@ -69,7 +69,7 @@ const login = async (req, res) => {
                 res.status(401).json({ message: "Invalid credentials" });
                 return;
             }
-            const validPassword = await (0, bcrypt_1.compare)(password, user.password);
+            const validPassword = await (0, bcryptjs_1.compare)(password, user.password);
             console.log("Password comparison result:", validPassword);
             if (!validPassword) {
                 res.status(401).json({ message: "Invalid credentials" });

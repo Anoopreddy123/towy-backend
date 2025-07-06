@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { User } from '../models/User';
-import { hash, compare } from 'bcrypt';
+import { hash, compare } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 import { GeoService } from '../config/geo-services';
 

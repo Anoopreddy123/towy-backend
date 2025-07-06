@@ -2,7 +2,7 @@
 
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
-import { hash, compare } from 'bcrypt';
+import { hash, compare } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 dotenv.config();
 

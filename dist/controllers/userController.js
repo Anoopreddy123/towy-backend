@@ -5,8 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.login = exports.signup = void 0;
 const database_1 = require("../config/database");
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const User_1 = require("../models/User");
-const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userRepository = database_1.AppDataSource.getRepository(User_1.User);
 const signup = async (req, res) => {
@@ -21,7 +21,7 @@ const signup = async (req, res) => {
             res.status(400).json({ message: 'User already exists' });
             return;
         }
-        const hashedPassword = await bcrypt_1.default.hash(password, 10);
+        const hashedPassword = await bcryptjs_1.default.hash(password, 10);
         const user = userRepository.create({
             name,
             email,
@@ -55,7 +55,7 @@ const login = async (req, res) => {
             res.status(401).json({ message: 'Invalid credentials' });
             return;
         }
-        const validPassword = await bcrypt_1.default.compare(password, user.password);
+        const validPassword = await bcryptjs_1.default.compare(password, user.password);
         if (!validPassword) {
             res.status(401).json({ message: 'Invalid credentials' });
             return;

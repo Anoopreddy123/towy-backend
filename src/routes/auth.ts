@@ -1,6 +1,6 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import { GeoService } from '../config/geo-services';
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { loginProvider } from '../controllers/authController';
 

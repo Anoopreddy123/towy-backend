@@ -18,7 +18,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GeoService = void 0;
 const pg_1 = require("pg");
 const dotenv_1 = __importDefault(require("dotenv"));
-const bcrypt_1 = require("bcrypt");
+const bcryptjs_1 = require("bcryptjs");
 const jsonwebtoken_1 = require("jsonwebtoken");
 dotenv_1.default.config();
 class GeoService {
@@ -93,7 +93,7 @@ class GeoService {
         }
     }
     async registerProvider(data) {
-        const hashedPassword = await (0, bcrypt_1.hash)(data.password, 10);
+        const hashedPassword = await (0, bcryptjs_1.hash)(data.password, 10);
         const result = await this.db.query(`
             INSERT INTO providers (
                 email, password, business_name, 
@@ -136,7 +136,7 @@ class GeoService {
                 throw new Error('Provider not found');
             }
             // Verify password
-            const validPassword = await (0, bcrypt_1.compare)(password, provider.password);
+            const validPassword = await (0, bcryptjs_1.compare)(password, provider.password);
             if (!validPassword) {
                 throw new Error('Invalid password');
             }
