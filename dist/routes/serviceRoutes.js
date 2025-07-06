@@ -1,0 +1,22 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.serviceRouter = void 0;
+const express_1 = require("express");
+const serviceController_1 = require("../controllers/serviceController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+// Service request routes
+router.get('/public/providers', serviceController_1.getAvailableProviders);
+router.post('/request', auth_1.authMiddleware, serviceController_1.createServiceRequest);
+router.get('/providers', auth_1.authMiddleware, serviceController_1.getAvailableProviders);
+router.get('/user-requests', auth_1.authMiddleware, serviceController_1.getUserRequests);
+router.patch('/request/:id/status', auth_1.authMiddleware, serviceController_1.updateServiceStatus);
+router.post('/request/:serviceId/quote', auth_1.authMiddleware, serviceController_1.submitQuote);
+router.get('/request/:serviceId/quotes', auth_1.authMiddleware, serviceController_1.getServiceQuotes);
+router.post('/request/:serviceId/accept-quote', auth_1.authMiddleware, serviceController_1.acceptQuote);
+router.get('/provider/services', auth_1.authMiddleware, serviceController_1.getProviderServices);
+router.get('/nearby-providers', auth_1.authMiddleware, serviceController_1.findNearbyProviders);
+router.post('/notify-provider', auth_1.authMiddleware, serviceController_1.notifyProvider);
+router.get('/request/:id', auth_1.authMiddleware, serviceController_1.getServiceRequest);
+router.get('/nearby-requests', auth_1.authMiddleware, serviceController_1.getNearbyRequests);
+exports.serviceRouter = router;

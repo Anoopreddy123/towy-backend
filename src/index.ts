@@ -12,6 +12,25 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 4000;
 
+// Define CORS options
+const corsOptions = {
+    origin: [
+        'https://towy-ui.vercel.app',
+        'http://localhost:3000',
+        /\.vercel\.app$/
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    credentials: true,
+    optionsSuccessStatus: 204
+};
+
+// Apply CORS middleware globally
+app.use(cors(corsOptions));
+
+// Parse JSON bodies
+app.use(express.json());
+
 // Initialize database before setting up routes
 console.log("Database URL:", process.env.DATABASE_URL);
 AppDataSource.initialize()
@@ -20,54 +39,16 @@ AppDataSource.initialize()
         console.log("Loaded entities:", AppDataSource.entityMetadatas.map(e => e.name));
         try {
             const geoService = new GeoService();
-            //await geoService.initializeTables(); // Make sure tables are created
         } catch (error) {
             console.error("GeoService initialization failed:", error);
-            // Continue app startup even if GeoService fails
         }
 
-        // Define CORS options for different scenarios
-        const corsOptions = {
-            origin: [
-                'https://towy-ui.vercel.app',
-                'http://localhost:3000',
-                /\.vercel\.app$/
-            ],
-            methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-            credentials: true,
-            optionsSuccessStatus: 204
-        };
-
-        // Basic CORS for public routes
-        const publicCors = cors({
-            origin: '*',
-            methods: ['GET', 'POST', 'OPTIONS'],
-            allowedHeaders: ['Content-Type']
-        });
-
-        // Secure CORS for authenticated routes
-        const secureCors = cors(corsOptions);
-
-        // Apply route-specific CORS
-        app.use(express.json());
-
-        // Public routes
-        app.get('/health', publicCors, (req, res) => {
+        // Health check endpoint
+        app.get('/health', (req, res) => {
             res.json({ status: 'healthy' });
         });
 
-        // Secure routes with specific CORS
-        app.use('/auth/provider/login', secureCors);
-        app.use('/auth/login', secureCors);
-        app.use('/auth/signup', secureCors);
-        app.use('/services', secureCors);
-        app.use('/users', secureCors);
-
-        // Handle OPTIONS preflight requests
-        app.options('*', secureCors);
-
-        // Your existing route handlers
+        // Apply routes
         app.use("/auth", authRouter);
         app.use("/users", userRouter);
         app.use("/services", serviceRouter);
