@@ -64,6 +64,26 @@ app.get('/db-test', async (req, res) => {
         });
     }
 });
+// Simple database connection test
+app.get('/simple-db-test', async (req, res) => {
+    try {
+        const client = await database_1.simpleDbPool.connect();
+        const result = await client.query('SELECT NOW()');
+        client.release();
+        res.json({
+            status: 'connected',
+            message: 'Simple database connection works',
+            timestamp: result.rows[0].now
+        });
+    }
+    catch (error) {
+        res.json({
+            status: 'error',
+            message: 'Simple database connection failed',
+            error: error.message
+        });
+    }
+});
 // Always register routes (they will handle database errors internally)
 app.use("/auth", authRoutes_1.authRouter);
 app.use("/users", userRoutes_1.userRouter);

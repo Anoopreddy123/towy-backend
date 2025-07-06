@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { User } from "../models/User";
 import { ServiceRequest } from "../models/ServiceRequest";
+import { Pool } from 'pg';
 import dotenv from 'dotenv';
 dotenv.config();
 console.log("Connecting to database:", process.env.DATABASE_URL); 
@@ -24,6 +25,17 @@ export const AppDataSource = new DataSource({
         connectionTimeoutMillis: 10000,
         maxUses: 7500, // Recycle connections
     }
+});
+
+// Simple direct connection as fallback
+export const simpleDbPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    },
+    max: 1,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
 });
 
 import { Provider } from "../entities/Provider";

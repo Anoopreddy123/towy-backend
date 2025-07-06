@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import express from "express";
 import cors from "cors";
-import { AppDataSource } from "./config/database";
+import { AppDataSource, simpleDbPool } from "./config/database";
 import { userRouter } from "./routes/userRoutes";
 import { serviceRouter } from "./routes/serviceRoutes";
 import { authRouter } from "./routes/authRoutes";
@@ -60,6 +60,26 @@ app.get('/db-test', async (req, res) => {
         res.json({ 
             status: 'error', 
             message: 'Database test failed',
+            error: error.message
+        });
+    }
+});
+
+// Simple database connection test
+app.get('/simple-db-test', async (req, res) => {
+    try {
+        const client = await simpleDbPool.connect();
+        const result = await client.query('SELECT NOW()');
+        client.release();
+        res.json({ 
+            status: 'connected', 
+            message: 'Simple database connection works',
+            timestamp: result.rows[0].now
+        });
+    } catch (error: any) {
+        res.json({ 
+            status: 'error', 
+            message: 'Simple database connection failed',
             error: error.message
         });
     }
