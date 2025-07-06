@@ -44,10 +44,13 @@ app.get('/test', (req, res) => {
 app.get('/db-test', async (req, res) => {
     try {
         if (AppDataSource.isInitialized) {
+            const entities = AppDataSource.entityMetadatas && Array.isArray(AppDataSource.entityMetadatas) 
+                ? AppDataSource.entityMetadatas.map(e => e.name)
+                : [];
             res.json({ 
                 status: 'connected', 
                 message: 'Database is connected',
-                entities: AppDataSource.entityMetadatas.map(e => e.name)
+                entities: entities
             });
         } else {
             res.json({ 
@@ -99,7 +102,10 @@ async function initializeDatabase() {
         await AppDataSource.initialize();
         
         console.log("Database connected successfully");
-        console.log("Loaded entities:", AppDataSource.entityMetadatas.map(e => e.name));
+        const entities = AppDataSource.entityMetadatas && Array.isArray(AppDataSource.entityMetadatas)
+            ? AppDataSource.entityMetadatas.map(e => e.name)
+            : [];
+        console.log("Loaded entities:", entities);
         console.log("Database is ready");
     } catch (error: any) {
         console.error("Failed to initialize database:", error);
