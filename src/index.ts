@@ -1,5 +1,10 @@
+import "reflect-metadata";
 import express from "express";
 import cors from "cors";
+import { AppDataSource } from "./config/database";
+import { userRouter } from "./routes/userRoutes";
+import { serviceRouter } from "./routes/serviceRoutes";
+import { authRouter } from "./routes/authRoutes";
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -25,17 +30,34 @@ app.use(cors(corsOptions));
 // Parse JSON bodies
 app.use(express.json());
 
-// Simple health check endpoint
+// Health check endpoint (always available)
 app.get('/health', (req, res) => {
     res.json({ status: 'healthy', message: 'Server is running' });
 });
 
-// Simple test endpoint
-app.get('/test', (req, res) => {
-    res.json({ message: 'Backend is working!' });
-});
+// Initialize database and routes
+async function initializeServer() {
+    try {
+        console.log("Database URL:", process.env.DATABASE_URL);
+        await AppDataSource.initialize();
+        console.log("Database connected");
+        console.log("Loaded entities:", AppDataSource.entityMetadatas.map(e => e.name));
+
+        // Apply routes
+        app.use("/auth", authRouter);
+        app.use("/users", userRouter);
+        app.use("/services", serviceRouter);
+
+        console.log("Routes initialized successfully");
+    } catch (error) {
+        console.error("Failed to initialize database:", error);
+        // Don't exit - let server continue with basic endpoints
+    }
+}
 
 // Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
+    // Initialize database after server starts
+    initializeServer();
 });
