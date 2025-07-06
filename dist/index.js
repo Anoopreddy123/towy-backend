@@ -3,14 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-require("reflect-metadata");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
-const database_1 = require("./config/database");
-// import { GeoService } from './config/geo-services';
-const userRoutes_1 = require("./routes/userRoutes");
-const serviceRoutes_1 = require("./routes/serviceRoutes");
-const authRoutes_1 = require("./routes/authRoutes");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -31,32 +25,15 @@ const corsOptions = {
 app.use((0, cors_1.default)(corsOptions));
 // Parse JSON bodies
 app.use(express_1.default.json());
-// Initialize database before setting up routes
-console.log("Database URL:", process.env.DATABASE_URL);
-database_1.AppDataSource.initialize()
-    .then(() => {
-    console.log("Database connected");
-    console.log("Loaded entities:", database_1.AppDataSource.entityMetadatas.map(e => e.name));
-    // Temporarily disable GeoService initialization
-    // try {
-    //     new GeoService();
-    // } catch (error) {
-    //     console.error("GeoService initialization failed:", error);
-    //     // Continue server startup even if GeoService fails
-    // }
-    // Health check endpoint
-    app.get('/health', (req, res) => {
-        res.json({ status: 'healthy' });
-    });
-    // Apply routes
-    app.use("/auth", authRoutes_1.authRouter);
-    app.use("/users", userRoutes_1.userRouter);
-    app.use("/services", serviceRoutes_1.serviceRouter);
-    app.listen(port, () => {
-        console.log(`Server running on port ${port}`);
-    });
-})
-    .catch((error) => {
-    console.error("Database connection error:", error);
-    process.exit(1);
+// Simple health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'healthy', message: 'Server is running' });
+});
+// Simple test endpoint
+app.get('/test', (req, res) => {
+    res.json({ message: 'Backend is working!' });
+});
+// Start server
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
 });
