@@ -31,7 +31,11 @@ class GeoService {
             }
         });
         console.log("DB connected"); // Debug line
-        this.initializeTables();
+        // Initialize tables asynchronously without blocking server startup
+        this.initializeTables().catch(error => {
+            console.error('GeoService initialization failed:', error);
+            // Don't throw error - let server continue
+        });
     }
     // Initialize tables
     async initializeTables() {
@@ -85,7 +89,7 @@ class GeoService {
         }
         catch (error) {
             console.error('GeoService: Failed to initialize tables:', error);
-            throw error;
+            // Don't throw error - let server continue
         }
     }
     async registerProvider(data) {

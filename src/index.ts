@@ -37,10 +37,13 @@ AppDataSource.initialize()
     .then(() => { 
         console.log("Database connected");
         console.log("Loaded entities:", AppDataSource.entityMetadatas.map(e => e.name));
+        
+        // Initialize GeoService without blocking server startup
         try {
-            const geoService = new GeoService();
+            new GeoService();
         } catch (error) {
             console.error("GeoService initialization failed:", error);
+            // Continue server startup even if GeoService fails
         }
 
         // Health check endpoint
