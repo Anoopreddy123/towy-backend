@@ -1,9 +1,14 @@
 import { Router } from 'express';
-import { signup, login } from '../controllers/userController';
+import { getAllUsers, getUserById, updateUser, deleteUser } from '../controllers/userController';
+import { authMiddleware } from '../middleware/auth';
+import { checkRole } from '../middleware/checkRole';
 
 const router = Router();
 
-router.post('/signup', signup);
-router.post('/login', login);
+// User management routes (admin only)
+router.get('/', authMiddleware, checkRole(['admin']), getAllUsers);
+router.get('/:id', authMiddleware, checkRole(['admin']), getUserById);
+router.put('/:id', authMiddleware, checkRole(['admin']), updateUser);
+router.delete('/:id', authMiddleware, checkRole(['admin']), deleteUser);
 
 export const userRouter = router; 

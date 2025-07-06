@@ -1,79 +1,100 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.signup = void 0;
+exports.deleteUser = exports.updateUser = exports.getUserById = exports.getAllUsers = void 0;
 const database_1 = require("../config/database");
-const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const User_1 = require("../models/User");
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const userRepository = database_1.AppDataSource.getRepository(User_1.User);
-const signup = async (req, res) => {
+const getAllUsers = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
-        if (!name || !email || !password) {
-            res.status(400).json({ message: 'All fields are required' });
-            return;
+        // Use direct database connection
+        const client = await database_1.simpleDbPool.connect();
+        try {
+            const result = await client.query('SELECT id, name, email, role FROM users');
+            res.json(result.rows);
         }
-        const existingUser = await userRepository.findOne({ where: { email } });
-        if (existingUser) {
-            res.status(400).json({ message: 'User already exists' });
-            return;
+        finally {
+            client.release();
         }
-        const hashedPassword = await bcryptjs_1.default.hash(password, 10);
-        const user = userRepository.create({
-            name,
-            email,
-            password: hashedPassword,
-            role: 'customer'
-        });
-        await userRepository.save(user);
-        const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '24h' });
-        res.status(201).json({
-            message: 'User created successfully',
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
     }
     catch (error) {
-        console.error('Signup error:', error);
-        res.status(500).json({ message: 'Error creating user' });
-    }
-};
-exports.signup = signup;
-const login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await userRepository.findOne({ where: { email } });
-        if (!user) {
-            res.status(401).json({ message: 'Invalid credentials' });
-            return;
-        }
-        const validPassword = await bcryptjs_1.default.compare(password, user.password);
-        if (!validPassword) {
-            res.status(401).json({ message: 'Invalid credentials' });
-            return;
-        }
-        const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '24h' });
-        res.json({
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
+        console.error('Get all users error:', error);
+        res.status(500).json({
+            error: "Database error. Please try again later."
         });
     }
+};
+exports.getAllUsers = getAllUsers;
+const getUserById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Use direct database connection
+        const client = await database_1.simpleDbPool.connect();
+        try {
+            const result = await client.query('SELECT id, name, email, role FROM users WHERE id = $1', [id]);
+            if (result.rows.length === 0) {
+                res.status(404).json({ error: "User not found" });
+                return;
+            }
+            res.json(result.rows[0]);
+        }
+        finally {
+            client.release();
+        }
+    }
     catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Error logging in' });
+        console.error('Get user by ID error:', error);
+        res.status(500).json({
+            error: "Database error. Please try again later."
+        });
     }
 };
-exports.login = login;
+exports.getUserById = getUserById;
+const updateUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, role } = req.body;
+        // Use direct database connection
+        const client = await database_1.simpleDbPool.connect();
+        try {
+            const result = await client.query('UPDATE users SET name = $1, email = $2, role = $3 WHERE id = $4 RETURNING id, name, email, role', [name, email, role, id]);
+            if (result.rows.length === 0) {
+                res.status(404).json({ error: "User not found" });
+                return;
+            }
+            res.json(result.rows[0]);
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('Update user error:', error);
+        res.status(500).json({
+            error: "Database error. Please try again later."
+        });
+    }
+};
+exports.updateUser = updateUser;
+const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Use direct database connection
+        const client = await database_1.simpleDbPool.connect();
+        try {
+            const result = await client.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+            if (result.rows.length === 0) {
+                res.status(404).json({ error: "User not found" });
+                return;
+            }
+            res.json({ message: "User deleted successfully" });
+        }
+        finally {
+            client.release();
+        }
+    }
+    catch (error) {
+        console.error('Delete user error:', error);
+        res.status(500).json({
+            error: "Database error. Please try again later."
+        });
+    }
+};
+exports.deleteUser = deleteUser;
