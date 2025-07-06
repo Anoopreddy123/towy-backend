@@ -1,6 +1,6 @@
 import { AppDataSource } from "../config/database";
 import { User } from "../models/User";
-import { hash } from "bcrypt";
+import { hash } from "bcryptjs";
 
 async function seed() {
     await AppDataSource.initialize();
