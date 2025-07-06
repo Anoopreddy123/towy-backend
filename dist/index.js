@@ -38,6 +38,32 @@ app.get('/health', (req, res) => {
 app.get('/test', (req, res) => {
     res.json({ message: 'Backend is working!' });
 });
+// Database test endpoint
+app.get('/db-test', async (req, res) => {
+    try {
+        if (database_1.AppDataSource.isInitialized) {
+            res.json({
+                status: 'connected',
+                message: 'Database is connected',
+                entities: database_1.AppDataSource.entityMetadatas.map(e => e.name)
+            });
+        }
+        else {
+            res.json({
+                status: 'not_connected',
+                message: 'Database is not connected',
+                error: 'Database initialization failed'
+            });
+        }
+    }
+    catch (error) {
+        res.json({
+            status: 'error',
+            message: 'Database test failed',
+            error: error.message
+        });
+    }
+});
 // Always register routes (they will handle database errors internally)
 app.use("/auth", authRoutes_1.authRouter);
 app.use("/users", userRoutes_1.userRouter);
