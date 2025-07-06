@@ -1,91 +1,111 @@
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
-import bcrypt from 'bcryptjs';
-import { User } from '../models/User';
-import jwt from 'jsonwebtoken';
+import { simpleDbPool } from '../config/database';
 
-const userRepository = AppDataSource.getRepository(User);
-
-export const signup = async (req: Request, res: Response): Promise<void> => {
+export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { name, email, password } = req.body;
-
-        if (!name || !email || !password) {
-            res.status(400).json({ message: 'All fields are required' });
-            return;
+        // Use direct database connection
+        const client = await simpleDbPool.connect();
+        try {
+            const result = await client.query(
+                'SELECT id, name, email, role FROM users'
+            );
+            
+            res.json(result.rows);
+        } finally {
+            client.release();
         }
-
-        const existingUser = await userRepository.findOne({ where: { email } });
-        if (existingUser) {
-            res.status(400).json({ message: 'User already exists' });
-            return;
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = userRepository.create({
-            name,
-            email,
-            password: hashedPassword,
-            role: 'customer'
+    } catch (error: any) {
+        console.error('Get all users error:', error);
+        res.status(500).json({ 
+            error: "Database error. Please try again later." 
         });
-
-        await userRepository.save(user);
-
-        const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role },
-            process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '24h' }
-        );
-
-        res.status(201).json({
-            message: 'User created successfully',
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-    } catch (error) {
-        console.error('Signup error:', error);
-        res.status(500).json({ message: 'Error creating user' });
     }
 };
 
-export const login = async (req: Request, res: Response): Promise<void> => {
+export const getUserById = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { email, password } = req.body;
+        const { id } = req.params;
         
-        const user = await userRepository.findOne({ where: { email } });
-        if (!user) {
-            res.status(401).json({ message: 'Invalid credentials' });
-            return;
-        }
-
-        const validPassword = await bcrypt.compare(password, user.password);
-        if (!validPassword) {
-            res.status(401).json({ message: 'Invalid credentials' });
-            return;
-        }
-
-        const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role },
-            process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '24h' }
-        );
-
-        res.json({
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role
+        // Use direct database connection
+        const client = await simpleDbPool.connect();
+        try {
+            const result = await client.query(
+                'SELECT id, name, email, role FROM users WHERE id = $1',
+                [id]
+            );
+            
+            if (result.rows.length === 0) {
+                res.status(404).json({ error: "User not found" });
+                return;
             }
+            
+            res.json(result.rows[0]);
+        } finally {
+            client.release();
+        }
+    } catch (error: any) {
+        console.error('Get user by ID error:', error);
+        res.status(500).json({ 
+            error: "Database error. Please try again later." 
         });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Error logging in' });
+    }
+};
+
+export const updateUser = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { name, email, role } = req.body;
+        
+        // Use direct database connection
+        const client = await simpleDbPool.connect();
+        try {
+            const result = await client.query(
+                'UPDATE users SET name = $1, email = $2, role = $3 WHERE id = $4 RETURNING id, name, email, role',
+                [name, email, role, id]
+            );
+            
+            if (result.rows.length === 0) {
+                res.status(404).json({ error: "User not found" });
+                return;
+            }
+            
+            res.json(result.rows[0]);
+        } finally {
+            client.release();
+        }
+    } catch (error: any) {
+        console.error('Update user error:', error);
+        res.status(500).json({ 
+            error: "Database error. Please try again later." 
+        });
+    }
+};
+
+export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        
+        // Use direct database connection
+        const client = await simpleDbPool.connect();
+        try {
+            const result = await client.query(
+                'DELETE FROM users WHERE id = $1 RETURNING id',
+                [id]
+            );
+            
+            if (result.rows.length === 0) {
+                res.status(404).json({ error: "User not found" });
+                return;
+            }
+            
+            res.json({ message: "User deleted successfully" });
+        } finally {
+            client.release();
+        }
+    } catch (error: any) {
+        console.error('Delete user error:', error);
+        res.status(500).json({ 
+            error: "Database error. Please try again later." 
+        });
     }
 }; 
