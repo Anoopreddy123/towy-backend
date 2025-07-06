@@ -22,7 +22,12 @@ exports.AppDataSource = new typeorm_1.DataSource({
     migrationsRun: true,
     logging: true,
     extra: {
-        ssl: true
+        ssl: true,
+        // Serverless-friendly connection settings
+        max: 1, // Limit connections for serverless
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+        maxUses: 7500, // Recycle connections
     }
 });
 const Provider_1 = require("../entities/Provider");
@@ -31,8 +36,16 @@ exports.GeoDataSource = new typeorm_1.DataSource({
     url: process.env.GEOSPATIAL_DB_URL,
     ssl: {
         rejectUnauthorized: false
-    }, // Connection string for geospatial database
+    },
     synchronize: true,
     entities: [Provider_1.Provider],
     logging: ["query", "error"],
+    extra: {
+        ssl: true,
+        // Serverless-friendly connection settings
+        max: 1,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+        maxUses: 7500,
+    }
 });

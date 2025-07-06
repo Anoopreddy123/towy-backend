@@ -46,12 +46,19 @@ app.use("/services", serviceRoutes_1.serviceRouter);
 async function initializeDatabase() {
     try {
         console.log("Database URL:", process.env.DATABASE_URL);
+        console.log("Starting database initialization...");
         await database_1.AppDataSource.initialize();
-        console.log("Database connected");
+        console.log("Database connected successfully");
         console.log("Loaded entities:", database_1.AppDataSource.entityMetadatas.map(e => e.name));
+        console.log("Database is ready");
     }
     catch (error) {
         console.error("Failed to initialize database:", error);
+        console.error("Error details:", {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+        });
         // Don't exit - let server continue with basic endpoints
     }
 }
