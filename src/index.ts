@@ -2,7 +2,7 @@ import "reflect-metadata";
 import express from "express";
 import cors from "cors";
 import { AppDataSource } from "./config/database";
-import { GeoService } from './config/geo-services';
+// import { GeoService } from './config/geo-services';
 import { userRouter } from "./routes/userRoutes";
 import { serviceRouter } from "./routes/serviceRoutes";
 import { authRouter } from "./routes/authRoutes";
@@ -38,13 +38,13 @@ AppDataSource.initialize()
         console.log("Database connected");
         console.log("Loaded entities:", AppDataSource.entityMetadatas.map(e => e.name));
         
-        // Initialize GeoService without blocking server startup
-        try {
-            new GeoService();
-        } catch (error) {
-            console.error("GeoService initialization failed:", error);
-            // Continue server startup even if GeoService fails
-        }
+        // Temporarily disable GeoService initialization
+        // try {
+        //     new GeoService();
+        // } catch (error) {
+        //     console.error("GeoService initialization failed:", error);
+        //     // Continue server startup even if GeoService fails
+        // }
 
         // Health check endpoint
         app.get('/health', (req, res) => {

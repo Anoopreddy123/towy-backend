@@ -7,7 +7,7 @@ require("reflect-metadata");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const database_1 = require("./config/database");
-const geo_services_1 = require("./config/geo-services");
+// import { GeoService } from './config/geo-services';
 const userRoutes_1 = require("./routes/userRoutes");
 const serviceRoutes_1 = require("./routes/serviceRoutes");
 const authRoutes_1 = require("./routes/authRoutes");
@@ -37,14 +37,13 @@ database_1.AppDataSource.initialize()
     .then(() => {
     console.log("Database connected");
     console.log("Loaded entities:", database_1.AppDataSource.entityMetadatas.map(e => e.name));
-    // Initialize GeoService without blocking server startup
-    try {
-        new geo_services_1.GeoService();
-    }
-    catch (error) {
-        console.error("GeoService initialization failed:", error);
-        // Continue server startup even if GeoService fails
-    }
+    // Temporarily disable GeoService initialization
+    // try {
+    //     new GeoService();
+    // } catch (error) {
+    //     console.error("GeoService initialization failed:", error);
+    //     // Continue server startup even if GeoService fails
+    // }
     // Health check endpoint
     app.get('/health', (req, res) => {
         res.json({ status: 'healthy' });
