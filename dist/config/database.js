@@ -33,7 +33,7 @@ exports.AppDataSource = new typeorm_1.DataSource({
 });
 // Simple direct connection as fallback
 exports.simpleDbPool = new pg_1.Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.GEOSPATIAL_DB_URL,
     ssl: {
         rejectUnauthorized: false
     },

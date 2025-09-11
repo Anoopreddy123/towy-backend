@@ -29,14 +29,15 @@ export const AppDataSource = new DataSource({
 
 // Simple direct connection as fallback
 export const simpleDbPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.GEOSPATIAL_DB_URL,
     ssl: {
         rejectUnauthorized: false
     },
     max: 1,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
-});
+}
+);
 
 import { Provider } from "../entities/Provider";
 

@@ -11,28 +11,65 @@ function initializeGeoService() {
     }
 }
 const createServiceRequest = async (req, res) => {
+    var _a, _b, _c;
     try {
         const { serviceType, location, coordinates, description, vehicleType } = req.body;
         console.log('Creating service request with:', { serviceType, location, coordinates });
-        // Validate service type
-        const validServiceTypes = ['towing', 'roadside_assistance', 'vehicle_recovery'];
+        // Validate service type (support all types used by the UI)
+        const validServiceTypes = [
+            'towing',
+            'roadside_assistance',
+            'vehicle_recovery',
+            'battery_jump',
+            'tire_change',
+            'gas_delivery',
+            'lockout',
+            'mechanic'
+        ];
         if (!validServiceTypes.includes(serviceType)) {
             res.status(400).json({ message: "Invalid service type" });
             return;
         }
-        const client = await database_1.simpleDbPool.connect();
-        try {
-            const result = await client.query(`INSERT INTO service_requests (service_type, location, coordinates, description, vehicle_type, status, user_id, created_at, updated_at) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *`, [serviceType, location, coordinates, description, vehicleType, 'pending', req.user.id]);
-            res.status(201).json({ message: 'Service request created', service: result.rows[0] });
+        // Normalize coordinates to a "lat, lng" string
+        let coordinatesText = null;
+        if (typeof coordinates === 'string') {
+            coordinatesText = coordinates;
         }
-        finally {
-            client.release();
+        else if (coordinates && typeof coordinates === 'object' &&
+            typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number') {
+            coordinatesText = `${coordinates.lat}, ${coordinates.lng}`;
         }
+        else if (Array.isArray(coordinates) && coordinates.length === 2) {
+            const [lat, lng] = coordinates;
+            if (typeof lat === 'number' && typeof lng === 'number') {
+                coordinatesText = `${lat}, ${lng}`;
+            }
+        }
+        // Use GeoService's Supabase pool for inserting into geospatial DB
+        initializeGeoService();
+        // Determine which foreign key to populate based on role
+        const isProvider = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.role) === 'provider';
+        const userId = !isProvider ? (_b = req.user) === null || _b === void 0 ? void 0 : _b.id : null;
+        const providerId = isProvider ? (_c = req.user) === null || _c === void 0 ? void 0 : _c.id : null;
+        console.log('Insert FK resolution:', { isProvider, userId, providerId });
+        const created = await geoService.createServiceRequest({
+            serviceType,
+            location,
+            coordinatesText,
+            description,
+            vehicleType,
+            userId,
+            providerId,
+        });
+        console.log('Service request created successfully:', created);
+        res.status(201).json({ message: 'Service request created', service: created });
     }
     catch (error) {
         console.error('Create service error:', error);
-        res.status(500).json({ message: "Error creating service request" });
+        res.status(500).json({
+            message: "Error creating service request",
+            details: error === null || error === void 0 ? void 0 : error.message,
+        });
     }
 };
 exports.createServiceRequest = createServiceRequest;
@@ -58,14 +95,12 @@ const getAvailableProviders = async (req, res) => {
 exports.getAvailableProviders = getAvailableProviders;
 const getUserRequests = async (req, res) => {
     try {
-        const client = await database_1.simpleDbPool.connect();
-        try {
-            const result = await client.query('SELECT * FROM service_requests WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
-            res.json(result.rows);
-        }
-        finally {
-            client.release();
-        }
+        console.log('Fetching requests for user:', req.user.id);
+        // Use GeoService to fetch from Supabase
+        initializeGeoService();
+        const requests = await geoService.getUserRequests(req.user.id);
+        console.log('Found requests:', requests.length, requests);
+        res.json(requests);
     }
     catch (error) {
         console.error('Get user requests error:', error);
@@ -77,18 +112,15 @@ const updateServiceStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
-        const client = await database_1.simpleDbPool.connect();
-        try {
-            const result = await client.query('UPDATE service_requests SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *', [status, id]);
-            if (result.rows.length === 0) {
-                res.status(404).json({ message: "Service request not found" });
-                return;
-            }
-            res.json({ message: "Status updated", service: result.rows[0] });
+        console.log('Updating service status:', { id, status });
+        // Use GeoService to update in Supabase
+        initializeGeoService();
+        const updated = await geoService.updateServiceStatus(id, status);
+        if (!updated) {
+            res.status(404).json({ message: "Service request not found" });
+            return;
         }
-        finally {
-            client.release();
-        }
+        res.json({ message: "Status updated", service: updated });
     }
     catch (error) {
         console.error('Update service status error:', error);
@@ -243,26 +275,17 @@ const getServiceRequest = async (req, res) => {
 };
 exports.getServiceRequest = getServiceRequest;
 const getNearbyRequests = async (req, res) => {
+    var _a;
     try {
-        const { latitude, longitude, radius = 10 } = req.query;
-        if (!latitude || !longitude) {
-            res.status(400).json({ message: "Latitude and longitude are required" });
+        // Provider-based nearby requests (50 miles by default)
+        if (((_a = req.user) === null || _a === void 0 ? void 0 : _a.role) !== 'provider') {
+            res.status(403).json({ message: 'Only providers can fetch nearby requests' });
             return;
         }
-        const client = await database_1.simpleDbPool.connect();
-        try {
-            const result = await client.query(`SELECT * FROM service_requests 
-                 WHERE status = 'pending' 
-                 AND ST_DWithin(
-                     ST_SetSRID(ST_MakePoint(CAST(SPLIT_PART(coordinates, ',', 2) AS FLOAT), CAST(SPLIT_PART(coordinates, ',', 1) AS FLOAT)), 4326),
-                     ST_SetSRID(ST_MakePoint($1, $2), 4326),
-                     $3
-                 )`, [parseFloat(longitude), parseFloat(latitude), parseFloat(radius) * 1000]);
-            res.json(result.rows);
-        }
-        finally {
-            client.release();
-        }
+        initializeGeoService();
+        const milesParam = req.query.miles ? parseFloat(req.query.miles) : 50;
+        const requests = await geoService.getNearbyRequestsByProvider(req.user.id, milesParam);
+        res.json(requests);
     }
     catch (error) {
         console.error('Get nearby requests error:', error);

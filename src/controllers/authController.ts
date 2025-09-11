@@ -111,7 +111,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
                 const token = sign(
                     { userId: user.id, role: user.role },
-                    process.env.JWT_SECRET || "your-secret-key",
+                    process.env.JWT_SECRET || "your_secret_key",
                     { expiresIn: "24h" }
                 );
 
@@ -216,7 +216,7 @@ export const loginProvider = async (req: Request, res: Response): Promise<void> 
 
         const token = sign(
             { userId: userData.id, role: 'provider' },
-            process.env.JWT_SECRET || 'your-secret-key',
+            process.env.JWT_SECRET || 'your_secret_key',
             { expiresIn: '24h' }
         );
 

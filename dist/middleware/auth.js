@@ -9,8 +9,9 @@ const authMiddleware = (req, res, next) => {
         return res.status(401).json({ message: 'No token provided' });
     }
     try {
-        const decoded = (0, jsonwebtoken_1.verify)(token, process.env.JWT_SECRET || 'your-secret-key');
-        req.user = decoded;
+        const decoded = (0, jsonwebtoken_1.verify)(token, process.env.JWT_SECRET || 'your_secret_key');
+        // Normalize the user object to ensure req.user.id is available
+        req.user = Object.assign(Object.assign({}, decoded), { id: decoded.userId || decoded.id });
         next();
     }
     catch (error) {

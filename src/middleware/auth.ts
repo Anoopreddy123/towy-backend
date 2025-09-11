@@ -17,8 +17,12 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     }
 
     try {
-        const decoded = verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        req.user = decoded;
+        const decoded = verify(token, process.env.JWT_SECRET || 'your_secret_key') as any;
+        // Normalize the user object to ensure req.user.id is available
+        req.user = {
+            ...decoded,
+            id: decoded.userId || decoded.id
+        };
         next();
     } catch (error) {
         res.status(401).json({ message: 'Invalid token' });

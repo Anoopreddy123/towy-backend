@@ -104,7 +104,7 @@ const login = async (req, res) => {
                     res.status(401).json({ message: "Invalid credentials" });
                     return;
                 }
-                const token = (0, jsonwebtoken_1.sign)({ userId: user.id, role: user.role }, process.env.JWT_SECRET || "your-secret-key", { expiresIn: "24h" });
+                const token = (0, jsonwebtoken_1.sign)({ userId: user.id, role: user.role }, process.env.JWT_SECRET || "your_secret_key", { expiresIn: "24h" });
                 const { password: _ } = user, userWithoutPassword = __rest(user, ["password"]);
                 res.json({
                     message: "Login successful",
@@ -199,7 +199,7 @@ const loginProvider = async (req, res) => {
             location: result.provider.location,
             isAvailable: result.provider.isAvailable
         };
-        const token = (0, jsonwebtoken_1.sign)({ userId: userData.id, role: 'provider' }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '24h' });
+        const token = (0, jsonwebtoken_1.sign)({ userId: userData.id, role: 'provider' }, process.env.JWT_SECRET || 'your_secret_key', { expiresIn: '24h' });
         res.json({
             message: "Login successful",
             token,
