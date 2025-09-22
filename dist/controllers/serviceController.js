@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getNearbyRequests = exports.getServiceRequest = exports.notifyProvider = exports.findNearbyProviders = exports.getProviderServices = exports.acceptQuote = exports.getServiceQuotes = exports.submitQuote = exports.updateServiceStatus = exports.getUserRequests = exports.getAvailableProviders = exports.createServiceRequest = void 0;
 const database_1 = require("../config/database");
 const geo_services_1 = require("../config/geo-services");
+const EventBus_1 = require("../events/EventBus");
+const uuid_1 = require("uuid");
+const geocodingService_1 = require("../services/geocodingService");
 let geoService = null;
 // Initialize GeoService when needed
 function initializeGeoService() {
@@ -11,7 +14,7 @@ function initializeGeoService() {
     }
 }
 const createServiceRequest = async (req, res) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     try {
         const { serviceType, location, coordinates, description, vehicleType } = req.body;
         console.log('Creating service request with:', { serviceType, location, coordinates });
@@ -32,17 +35,37 @@ const createServiceRequest = async (req, res) => {
         }
         // Normalize coordinates to a "lat, lng" string
         let coordinatesText = null;
+        let humanReadableLocation = location || null;
         if (typeof coordinates === 'string') {
             coordinatesText = coordinates;
         }
         else if (coordinates && typeof coordinates === 'object' &&
             typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number') {
             coordinatesText = `${coordinates.lat}, ${coordinates.lng}`;
+            // Try reverse geocoding to a human-readable area name
+            try {
+                const result = await (0, geocodingService_1.reverseGeocode)(coordinates.lat, coordinates.lng);
+                if (result === null || result === void 0 ? void 0 : result.display) {
+                    humanReadableLocation = result.display;
+                }
+            }
+            catch (e) {
+                console.warn('Reverse geocoding failed, using raw location or coords string');
+            }
         }
         else if (Array.isArray(coordinates) && coordinates.length === 2) {
             const [lat, lng] = coordinates;
             if (typeof lat === 'number' && typeof lng === 'number') {
                 coordinatesText = `${lat}, ${lng}`;
+                try {
+                    const result = await (0, geocodingService_1.reverseGeocode)(lat, lng);
+                    if (result === null || result === void 0 ? void 0 : result.display) {
+                        humanReadableLocation = result.display;
+                    }
+                }
+                catch (e) {
+                    console.warn('Reverse geocoding failed, using raw location or coords string');
+                }
             }
         }
         // Use GeoService's Supabase pool for inserting into geospatial DB
@@ -54,7 +77,7 @@ const createServiceRequest = async (req, res) => {
         console.log('Insert FK resolution:', { isProvider, userId, providerId });
         const created = await geoService.createServiceRequest({
             serviceType,
-            location,
+            location: humanReadableLocation || location || coordinatesText || 'Unknown location',
             coordinatesText,
             description,
             vehicleType,
@@ -62,6 +85,28 @@ const createServiceRequest = async (req, res) => {
             providerId,
         });
         console.log('Service request created successfully:', created);
+        // Emit service request created event for notification system
+        if (created && created.id) {
+            // Debug: Log the raw request data
+            console.log('Raw request body:', req.body);
+            console.log('Extracted data:', { serviceType, location, coordinates, description, vehicleType });
+            const serviceRequestEvent = {
+                id: (0, uuid_1.v4)(),
+                type: 'service_request_created',
+                timestamp: new Date(),
+                data: {
+                    requestId: created.id,
+                    userId: (_d = req.user) === null || _d === void 0 ? void 0 : _d.id,
+                    serviceType: serviceType,
+                    location: humanReadableLocation || location || coordinatesText || 'Unknown location',
+                    coordinates: coordinates,
+                    description: description,
+                    vehicleType: vehicleType
+                }
+            };
+            console.log('Emitting service request created event:', serviceRequestEvent);
+            EventBus_1.eventBus.emitEvent(serviceRequestEvent);
+        }
         res.status(201).json({ message: 'Service request created', service: created });
     }
     catch (error) {

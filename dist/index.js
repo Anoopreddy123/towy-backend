@@ -10,6 +10,8 @@ const database_1 = require("./config/database");
 const userRoutes_1 = require("./routes/userRoutes");
 const serviceRoutes_1 = require("./routes/serviceRoutes");
 const authRoutes_1 = require("./routes/authRoutes");
+const NotificationEventHandler_1 = require("./events/NotificationEventHandler");
+const EventBus_1 = require("./events/EventBus");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -37,6 +39,41 @@ app.get('/health', (req, res) => {
 // Test endpoint (always available)
 app.get('/test', (req, res) => {
     res.json({ message: 'Backend is working!' });
+});
+// Event system test endpoint
+app.get('/test-events', async (req, res) => {
+    try {
+        const stats = EventBus_1.eventBus.getEventStats();
+        const testResult = await NotificationEventHandler_1.notificationEventHandler.testNotificationSystem();
+        // Test event emission
+        console.log('Testing event emission...');
+        EventBus_1.eventBus.emitEvent({
+            id: 'test-event-' + Date.now(),
+            type: 'service_request_created',
+            timestamp: new Date(),
+            data: {
+                requestId: 'test-request-123',
+                userId: 'test-user-123',
+                serviceType: 'towing',
+                location: 'Test Location',
+                coordinates: { lat: 40.7128, lng: -74.0060 },
+                description: 'Test request',
+                vehicleType: 'Sedan'
+            }
+        });
+        res.json({
+            message: 'Event system test completed',
+            eventBus: stats,
+            notificationSystem: testResult ? 'working' : 'has issues',
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            message: 'Event system test failed',
+            error: error.message
+        });
+    }
 });
 // Database test endpoint
 app.get('/db-test', async (req, res) => {
@@ -114,9 +151,39 @@ async function initializeDatabase() {
         // Don't exit - let server continue with basic endpoints
     }
 }
+// Initialize event system
+async function initializeEventSystem() {
+    try {
+        console.log("Initializing event-driven architecture...");
+        // Initialize notification event handler (this sets up event listeners)
+        const handler = NotificationEventHandler_1.notificationEventHandler;
+        console.log("Notification event handler initialized");
+        // Test the notification system
+        const testResult = await handler.testNotificationSystem();
+        if (testResult) {
+            console.log("✅ Event-driven notification system is ready");
+        }
+        else {
+            console.warn("⚠️ Event-driven notification system has issues but will continue");
+        }
+        // Log event bus stats
+        const stats = EventBus_1.eventBus.getEventStats();
+        console.log("Event bus stats:", stats);
+    }
+    catch (error) {
+        console.error("Failed to initialize event system:", error);
+        console.error("Error details:", {
+            message: error.message,
+            stack: error.stack
+        });
+        // Don't exit - let server continue
+    }
+}
 // Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
-    // Initialize database after server starts
-    initializeDatabase();
+    // Initialize database and event system after server starts
+    initializeDatabase().then(() => {
+        initializeEventSystem();
+    });
 });

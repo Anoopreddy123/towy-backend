@@ -17,7 +17,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     }
 
     try {
-        const decoded = verify(token, process.env.JWT_SECRET || 'your_secret_key') as any;
+        const decoded = verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
         // Normalize the user object to ensure req.user.id is available
         req.user = {
             ...decoded,

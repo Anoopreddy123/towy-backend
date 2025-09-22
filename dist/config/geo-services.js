@@ -229,42 +229,61 @@ class GeoService {
     }
     async findNearbyProviders(latitude, longitude, radius, serviceType) {
         console.log('GeoService: Finding providers near', latitude, longitude, 'radius:', radius, 'service:', serviceType);
-        // For now, return mock providers since we don't have real provider data
-        // In a real app, this would query the providers table with PostGIS
-        const mockProviders = [
-            {
-                id: 'provider-1',
-                name: 'John Smith',
-                businessName: 'John\'s Towing Service',
-                services: ['towing', 'roadside_assistance'],
-                distance: 2.5,
-                isAvailable: true,
-                phone: '(555) 123-4567',
-                email: 'john@johnstowing.com'
-            },
-            {
-                id: 'provider-2',
-                name: 'Mike Johnson',
-                businessName: 'Quick Fix Auto Repair',
-                services: ['towing', 'vehicle_recovery'],
-                distance: 4.1,
-                isAvailable: true,
-                phone: '(555) 987-6543',
-                email: 'mike@quickfixauto.com'
-            },
-            {
-                id: 'provider-3',
-                name: 'Sarah Wilson',
-                businessName: 'Emergency Roadside Assistance',
-                services: ['roadside_assistance', 'towing'],
-                distance: 6.8,
-                isAvailable: false,
-                phone: '(555) 456-7890',
-                email: 'sarah@emergencyroadside.com'
-            }
-        ];
-        console.log('GeoService: Returning mock providers:', mockProviders.length);
-        return mockProviders;
+        try {
+            // First, let's debug - check if any providers exist at all
+            const debugQuery = `SELECT id, business_name, email, services, is_available, location FROM providers LIMIT 5`;
+            const debugResult = await this.db.query(debugQuery);
+            console.log('GeoService: All providers in database:', debugResult.rows);
+            // Query real providers from the database using PostGIS
+            // Use a minimum radius of 100 meters to catch providers at the same location
+            const minRadius = Math.max(radius, 0.1); // At least 100 meters
+            const query = `
+                SELECT 
+                    id,
+                    business_name,
+                    email,
+                    services,
+                    is_available,
+                    ST_Distance(
+                        location::geometry,
+                        ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
+                    ) / 1000 as distance_km
+                FROM providers 
+                WHERE 
+                    ST_DWithin(
+                        location::geography,
+                        ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography,
+                        $3 * 1000
+                    )
+                    AND is_available = true
+                    AND (
+                        $4 = ANY(services) OR 
+                        'all' = ANY(services) OR 
+                        'general' = ANY(services) OR
+                        'towing' = ANY(services) -- Allow towing providers for any service type
+                    )
+                ORDER BY distance_km ASC
+                LIMIT 20
+            `;
+            const result = await this.db.query(query, [latitude, longitude, minRadius, serviceType]);
+            const providers = result.rows.map(row => ({
+                id: row.id,
+                name: row.business_name || 'Provider',
+                businessName: row.business_name,
+                email: row.email,
+                phone: null, // No phone column in providers table
+                services: row.services || [],
+                distance: parseFloat(row.distance_km),
+                isAvailable: row.is_available
+            }));
+            console.log(`GeoService: Found ${providers.length} real providers within ${radius}km`);
+            return providers;
+        }
+        catch (error) {
+            console.error('GeoService: Error querying providers:', error);
+            console.log('GeoService: No providers found in database');
+            return [];
+        }
     }
     async updateServiceStatus(requestId, status) {
         console.log('GeoService: Updating service status:', { requestId, status });
