@@ -302,12 +302,21 @@ const getServiceRequest = async (req, res) => {
         const { id } = req.params;
         const client = await database_1.simpleDbPool.connect();
         try {
-            const result = await client.query('SELECT * FROM service_requests WHERE id = $1', [id]);
+            const result = await client.query(`SELECT s.*, u.name AS customer_name, u.email AS customer_email
+                 FROM service_requests s
+                 LEFT JOIN users u ON u.id = s.user_id
+                 WHERE s.id = $1`, [id]);
             if (result.rows.length === 0) {
                 res.status(404).json({ message: "Service request not found" });
                 return;
             }
-            res.json(result.rows[0]);
+            const row = result.rows[0];
+            // Shape a response that includes a nested user object for convenience
+            const shaped = Object.assign(Object.assign({}, row), { user: row.customer_name || row.customer_email ? {
+                    name: row.customer_name || null,
+                    email: row.customer_email || null
+                } : null });
+            res.json(shaped);
         }
         finally {
             client.release();

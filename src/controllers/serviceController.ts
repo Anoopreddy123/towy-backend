@@ -3,6 +3,7 @@ import { simpleDbPool } from '../config/database';
 import { GeoService } from '../config/geo-services';
 import { eventBus } from '../events/EventBus';
 import { v4 as uuidv4 } from 'uuid';
+
 import { reverseGeocode } from '../services/geocodingService';
 
 let geoService: any = null;
