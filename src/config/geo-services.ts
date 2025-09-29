@@ -27,11 +27,17 @@ export class GeoService {
                 ssl: { rejectUnauthorized: false }
             });
         } else {
-            console.log("GeoService connection string:", process.env.GEOSPATIAL_DB_URL); // Debug line
+            // Normalize connection string to force SSL mode required in serverless/prod
+            const rawUrl = process.env.GEOSPATIAL_DB_URL || '';
+            let connectionString = rawUrl;
+            if (rawUrl && !/sslmode=/i.test(rawUrl)) {
+                connectionString += (rawUrl.includes('?') ? '&' : '?') + 'sslmode=require';
+            }
+            console.log("GeoService connection string (normalized):", connectionString); // Debug line
             this.db = new Pool({
-                connectionString: process.env.GEOSPATIAL_DB_URL,
+                connectionString,
                 ssl: {
-                    rejectUnauthorized: false // Required for Supabase
+                    rejectUnauthorized: false // Accept managed cert chains
                 }
             });
         }
