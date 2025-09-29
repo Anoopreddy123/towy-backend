@@ -12,12 +12,15 @@ export class GeoService {
     constructor() {
         // Always prefer connection string; ignore discrete GEOSPATIAL_DB_* fields
         const rawUrl = process.env.GEOSPATIAL_DB_URL || '';
+        console.log('[GeoService] RAW GEOSPATIAL_DB_URL:', rawUrl);
+        console.log('[GeoService] PGSSLMODE:', process.env.PGSSLMODE);
+        console.log('[GeoService] NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
         let connectionString = rawUrl;
         if (rawUrl && !/sslmode=/i.test(rawUrl)) {
             // Use no-verify to bypass chain issues in managed envs
             connectionString += (rawUrl.includes('?') ? '&' : '?') + 'sslmode=no-verify';
         }
-        console.log("GeoService connection string (normalized):", connectionString);
+        console.log('[GeoService] Connection string (normalized):', connectionString);
         this.db = new Pool({
             connectionString,
             ssl: { rejectUnauthorized: false }
