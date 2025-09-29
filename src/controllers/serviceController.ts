@@ -289,12 +289,26 @@ export const getProviderServices = async (req: Request, res: Response): Promise<
 
 export const findNearbyProviders = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { latitude, longitude, serviceType } = req.query;
+        const { latitude, longitude, serviceType, radius } = req.query;
 
-        if (!latitude || !longitude || !serviceType) {
+        console.log('Find nearby providers params:', { latitude, longitude, serviceType, radius });
+        
+        if (!latitude || !longitude || latitude === 'undefined' || longitude === 'undefined') {
             res.status(400).json({ 
-                message: "Missing required parameters",
-                required: { latitude, longitude, serviceType }
+                message: "Valid latitude and longitude are required",
+                received: { latitude, longitude, serviceType, radius }
+            });
+            return;
+        }
+
+        const lat = parseFloat(latitude as string);
+        const lng = parseFloat(longitude as string);
+        const radiusKm = radius ? parseFloat(radius as string) : 10;
+        
+        if (isNaN(lat) || isNaN(lng) || isNaN(radiusKm)) {
+            res.status(400).json({ 
+                message: "Invalid numeric values for coordinates or radius",
+                parsed: { lat, lng, radiusKm }
             });
             return;
         }
@@ -302,10 +316,10 @@ export const findNearbyProviders = async (req: Request, res: Response): Promise<
         // Use GeoService to find nearby providers
         initializeGeoService();
         const providers = await geoService.findNearbyProviders(
-            parseFloat(latitude as string),
-            parseFloat(longitude as string),
-            10, // Default radius of 10km
-            serviceType as string
+            lat,
+            lng,
+            radiusKm,
+            serviceType as string || 'all'
         );
 
         res.json(providers);
