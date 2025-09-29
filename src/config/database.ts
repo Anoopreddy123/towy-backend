@@ -36,8 +36,7 @@ export const simpleDbPool = new Pool({
     max: 1,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
-}
-);
+});
 
 import { Provider } from "../entities/Provider";
 
