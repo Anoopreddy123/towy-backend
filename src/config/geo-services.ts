@@ -10,38 +10,18 @@ export class GeoService {
     private db: Pool;
 
     constructor() {
-        const hasDiscrete = !!process.env.GEOSPATIAL_DB_HOST;
-        if (hasDiscrete) {
-            console.log("GeoService connecting via fields:", {
-                host: process.env.GEOSPATIAL_DB_HOST,
-                port: process.env.GEOSPATIAL_DB_PORT,
-                user: process.env.GEOSPATIAL_DB_USER,
-                database: process.env.GEOSPATIAL_DB_NAME
-            });
-            this.db = new Pool({
-                host: process.env.GEOSPATIAL_DB_HOST,
-                port: process.env.GEOSPATIAL_DB_PORT ? parseInt(process.env.GEOSPATIAL_DB_PORT, 10) : 6543,
-                user: process.env.GEOSPATIAL_DB_USER,
-                password: process.env.GEOSPATIAL_DB_PASSWORD,
-                database: process.env.GEOSPATIAL_DB_NAME || 'postgres',
-                // Temporary: relax cert validation to avoid SELF_SIGNED_CERT_IN_CHAIN
-                ssl: { rejectUnauthorized: false }
-            });
-        } else {
-            // Normalize connection string to force SSL mode required in serverless/prod
-            const rawUrl = process.env.GEOSPATIAL_DB_URL || '';
-            let connectionString = rawUrl;
-            if (rawUrl && !/sslmode=/i.test(rawUrl)) {
-                // Use no-verify to bypass chain issues in managed envs
-                connectionString += (rawUrl.includes('?') ? '&' : '?') + 'sslmode=no-verify';
-            }
-            console.log("GeoService connection string (normalized):", connectionString); // Debug line
-            this.db = new Pool({
-                connectionString,
-                // Temporary: relax cert validation to avoid SELF_SIGNED_CERT_IN_CHAIN
-                ssl: { rejectUnauthorized: false }
-            });
+        // Always prefer connection string; ignore discrete GEOSPATIAL_DB_* fields
+        const rawUrl = process.env.GEOSPATIAL_DB_URL || '';
+        let connectionString = rawUrl;
+        if (rawUrl && !/sslmode=/i.test(rawUrl)) {
+            // Use no-verify to bypass chain issues in managed envs
+            connectionString += (rawUrl.includes('?') ? '&' : '?') + 'sslmode=no-verify';
         }
+        console.log("GeoService connection string (normalized):", connectionString);
+        this.db = new Pool({
+            connectionString,
+            ssl: { rejectUnauthorized: false }
+        });
         console.log("DB connected"); // Debug line
         
         // Initialize tables asynchronously without blocking server startup
