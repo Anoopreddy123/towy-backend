@@ -1,6 +1,3 @@
-// Temporary TLS relaxation to unblock SSL chain issues in serverless
-// NOTE: Replace with pinned CA and set rejectUnauthorized: true later
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 import "reflect-metadata";
 import express from "express";
 import cors from "cors";
