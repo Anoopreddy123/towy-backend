@@ -351,10 +351,28 @@ export const getServiceRequest = async (req: Request, res: Response): Promise<vo
                 return;
             }
             
-            const row = result.rows[0];
-            // Shape a response that includes a nested user object for convenience
+            const row = result.rows[0] as any;
+            // Parse coordinates string to { lat, lng } when possible
+            let coordinatesParsed: { lat: number; lng: number } | null = null;
+            if (typeof row.coordinates === 'string' && row.coordinates.includes(',')) {
+                const parts = row.coordinates.split(',');
+                const lat = parseFloat(parts[0]);
+                const lng = parseFloat(parts[1]);
+                if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                    coordinatesParsed = { lat, lng };
+                }
+            }
+
+            // Shape a response that includes a nested user object and normalized fields
             const shaped = {
-                ...row,
+                id: row.id,
+                serviceType: row.service_type ?? row.serviceType,
+                location: row.location,
+                coordinates: coordinatesParsed,
+                description: row.description,
+                vehicleType: row.vehicle_type ?? row.vehicleType,
+                status: row.status,
+                createdAt: row.created_at ?? row.createdAt,
                 user: row.customer_name || row.customer_email ? {
                     name: row.customer_name || null,
                     email: row.customer_email || null
