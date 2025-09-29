@@ -23,8 +23,6 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production",
-    "DATABASE_URL": "postgresql://towy_db_owner:iDMY39zGtgOr@ep-spring-unit-a58d260q.us-east-2.aws.neon.tech/towy_db?sslmode=require",
-    "GEOSPATIAL_DB_URL": "postgresql://postgres.uocuprpuehwqxpcmdlga:Mustang%401999@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require"
+    "NODE_ENV": "production"
   }
 } 
