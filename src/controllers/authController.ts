@@ -86,8 +86,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             if (!geoService) {
                 geoService = new GeoService();
             }
-            const provider = await geoService.loginProvider(email, password);
-            res.json(provider);
+            try {
+                const provider = await geoService.loginProvider(email, password);
+                res.json(provider);
+            } catch (err: any) {
+                console.error('[provider/login] error', {
+                    message: err?.message,
+                    code: err?.code,
+                    stack: err?.stack
+                });
+                if (err?.message?.toLowerCase().includes('self-signed')) {
+                    res.status(503).json({ message: 'Upstream DB TLS error. Please retry shortly.' });
+                    return;
+                }
+                res.status(401).json({ message: err?.message || 'Unauthorized' });
+            }
         } else {
             // Check main DB for users using direct connection
             const client = await simpleDbPool.connect();
