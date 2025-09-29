@@ -26,10 +26,8 @@ export class GeoService {
             ssl: { 
                 rejectUnauthorized: false,
                 checkServerIdentity: () => undefined
-            },
-            // Additional SSL bypass options
-            sslmode: 'no-verify'
-        });
+            }
+        }); // SSL bypass configured
         console.log("DB connected"); // Debug line
         
         // Initialize tables asynchronously without blocking server startup

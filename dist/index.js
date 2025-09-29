@@ -14,6 +14,9 @@ const NotificationEventHandler_1 = require("./events/NotificationEventHandler");
 const EventBus_1 = require("./events/EventBus");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
+// CRITICAL: Bypass SSL validation for PostgreSQL connections in serverless environments
+process.env.PGSSLMODE = 'no-verify';
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const app = (0, express_1.default)();
 const port = process.env.PORT || 4000;
 // Define CORS options

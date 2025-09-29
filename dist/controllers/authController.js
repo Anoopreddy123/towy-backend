@@ -79,6 +79,7 @@ const signup = async (req, res) => {
 };
 exports.signup = signup;
 const login = async (req, res) => {
+    var _a;
     try {
         const { email, password, role } = req.body;
         if (role === 'provider') {
@@ -86,8 +87,22 @@ const login = async (req, res) => {
             if (!geoService) {
                 geoService = new geo_services_1.GeoService();
             }
-            const provider = await geoService.loginProvider(email, password);
-            res.json(provider);
+            try {
+                const provider = await geoService.loginProvider(email, password);
+                res.json(provider);
+            }
+            catch (err) {
+                console.error('[provider/login] error', {
+                    message: err === null || err === void 0 ? void 0 : err.message,
+                    code: err === null || err === void 0 ? void 0 : err.code,
+                    stack: err === null || err === void 0 ? void 0 : err.stack
+                });
+                if ((_a = err === null || err === void 0 ? void 0 : err.message) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes('self-signed')) {
+                    res.status(503).json({ message: 'Upstream DB TLS error. Please retry shortly.' });
+                    return;
+                }
+                res.status(401).json({ message: (err === null || err === void 0 ? void 0 : err.message) || 'Unauthorized' });
+            }
         }
         else {
             // Check main DB for users using direct connection

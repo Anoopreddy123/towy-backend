@@ -260,18 +260,28 @@ const getProviderServices = async (req, res) => {
 exports.getProviderServices = getProviderServices;
 const findNearbyProviders = async (req, res) => {
     try {
-        const { latitude, longitude, serviceType } = req.query;
-        if (!latitude || !longitude || !serviceType) {
+        const { latitude, longitude, serviceType, radius } = req.query;
+        console.log('Find nearby providers params:', { latitude, longitude, serviceType, radius });
+        if (!latitude || !longitude || latitude === 'undefined' || longitude === 'undefined') {
             res.status(400).json({
-                message: "Missing required parameters",
-                required: { latitude, longitude, serviceType }
+                message: "Valid latitude and longitude are required",
+                received: { latitude, longitude, serviceType, radius }
+            });
+            return;
+        }
+        const lat = parseFloat(latitude);
+        const lng = parseFloat(longitude);
+        const radiusKm = radius ? parseFloat(radius) : 10;
+        if (isNaN(lat) || isNaN(lng) || isNaN(radiusKm)) {
+            res.status(400).json({
+                message: "Invalid numeric values for coordinates or radius",
+                parsed: { lat, lng, radiusKm }
             });
             return;
         }
         // Use GeoService to find nearby providers
         initializeGeoService();
-        const providers = await geoService.findNearbyProviders(parseFloat(latitude), parseFloat(longitude), 10, // Default radius of 10km
-        serviceType);
+        const providers = await geoService.findNearbyProviders(lat, lng, radiusKm, serviceType || 'all');
         res.json(providers);
     }
     catch (error) {
@@ -298,6 +308,7 @@ const notifyProvider = async (req, res) => {
 };
 exports.notifyProvider = notifyProvider;
 const getServiceRequest = async (req, res) => {
+    var _a, _b, _c;
     try {
         const { id } = req.params;
         const client = await database_1.simpleDbPool.connect();
@@ -311,11 +322,31 @@ const getServiceRequest = async (req, res) => {
                 return;
             }
             const row = result.rows[0];
-            // Shape a response that includes a nested user object for convenience
-            const shaped = Object.assign(Object.assign({}, row), { user: row.customer_name || row.customer_email ? {
+            // Parse coordinates string to { lat, lng } when possible
+            let coordinatesParsed = null;
+            if (typeof row.coordinates === 'string' && row.coordinates.includes(',')) {
+                const parts = row.coordinates.split(',');
+                const lat = parseFloat(parts[0]);
+                const lng = parseFloat(parts[1]);
+                if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                    coordinatesParsed = { lat, lng };
+                }
+            }
+            // Shape a response that includes a nested user object and normalized fields
+            const shaped = {
+                id: row.id,
+                serviceType: (_a = row.service_type) !== null && _a !== void 0 ? _a : row.serviceType,
+                location: row.location,
+                coordinates: coordinatesParsed,
+                description: row.description,
+                vehicleType: (_b = row.vehicle_type) !== null && _b !== void 0 ? _b : row.vehicleType,
+                status: row.status,
+                createdAt: (_c = row.created_at) !== null && _c !== void 0 ? _c : row.createdAt,
+                user: row.customer_name || row.customer_email ? {
                     name: row.customer_name || null,
                     email: row.customer_email || null
-                } : null });
+                } : null
+            };
             res.json(shaped);
         }
         finally {

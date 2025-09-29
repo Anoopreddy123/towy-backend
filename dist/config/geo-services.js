@@ -23,32 +23,24 @@ const jsonwebtoken_1 = require("jsonwebtoken");
 dotenv_1.default.config();
 class GeoService {
     constructor() {
-        const hasDiscrete = !!process.env.GEOSPATIAL_DB_HOST;
-        if (hasDiscrete) {
-            console.log("GeoService connecting via fields:", {
-                host: process.env.GEOSPATIAL_DB_HOST,
-                port: process.env.GEOSPATIAL_DB_PORT,
-                user: process.env.GEOSPATIAL_DB_USER,
-                database: process.env.GEOSPATIAL_DB_NAME
-            });
-            this.db = new pg_1.Pool({
-                host: process.env.GEOSPATIAL_DB_HOST,
-                port: process.env.GEOSPATIAL_DB_PORT ? parseInt(process.env.GEOSPATIAL_DB_PORT, 10) : 6543,
-                user: process.env.GEOSPATIAL_DB_USER,
-                password: process.env.GEOSPATIAL_DB_PASSWORD,
-                database: process.env.GEOSPATIAL_DB_NAME || 'postgres',
-                ssl: { rejectUnauthorized: false }
-            });
+        // Always prefer connection string; ignore discrete GEOSPATIAL_DB_* fields
+        const rawUrl = process.env.GEOSPATIAL_DB_URL || '';
+        console.log('[GeoService] RAW GEOSPATIAL_DB_URL:', rawUrl);
+        console.log('[GeoService] PGSSLMODE:', process.env.PGSSLMODE);
+        console.log('[GeoService] NODE_TLS_REJECT_UNAUTHORIZED:', process.env.NODE_TLS_REJECT_UNAUTHORIZED);
+        let connectionString = rawUrl;
+        if (rawUrl && !/sslmode=/i.test(rawUrl)) {
+            // Use no-verify to bypass chain issues in managed envs
+            connectionString += (rawUrl.includes('?') ? '&' : '?') + 'sslmode=no-verify';
         }
-        else {
-            console.log("GeoService connection string:", process.env.GEOSPATIAL_DB_URL); // Debug line
-            this.db = new pg_1.Pool({
-                connectionString: process.env.GEOSPATIAL_DB_URL,
-                ssl: {
-                    rejectUnauthorized: false // Required for Supabase
-                }
-            });
-        }
+        console.log('[GeoService] Connection string (normalized):', connectionString);
+        this.db = new pg_1.Pool({
+            connectionString,
+            ssl: {
+                rejectUnauthorized: false,
+                checkServerIdentity: () => undefined
+            }
+        });
         console.log("DB connected"); // Debug line
         // Initialize tables asynchronously without blocking server startup
         this.initializeTables().catch(error => {
