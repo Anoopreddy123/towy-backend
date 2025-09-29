@@ -24,7 +24,7 @@ export class GeoService {
                 user: process.env.GEOSPATIAL_DB_USER,
                 password: process.env.GEOSPATIAL_DB_PASSWORD,
                 database: process.env.GEOSPATIAL_DB_NAME || 'postgres',
-                ssl: { rejectUnauthorized: false }
+                ssl: { rejectUnauthorized: true }
             });
         } else {
             // Normalize connection string to force SSL mode required in serverless/prod
@@ -36,7 +36,7 @@ export class GeoService {
             console.log("GeoService connection string (normalized):", connectionString); // Debug line
             this.db = new Pool({
                 connectionString,
-                ssl: { rejectUnauthorized: false }
+                ssl: { rejectUnauthorized: true }
             });
         }
         console.log("DB connected"); // Debug line
