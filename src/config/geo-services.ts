@@ -23,7 +23,12 @@ export class GeoService {
         console.log('[GeoService] Connection string (normalized):', connectionString);
         this.db = new Pool({
             connectionString,
-            ssl: { rejectUnauthorized: false }
+            ssl: { 
+                rejectUnauthorized: false,
+                checkServerIdentity: () => undefined
+            },
+            // Additional SSL bypass options
+            sslmode: 'no-verify'
         });
         console.log("DB connected"); // Debug line
         

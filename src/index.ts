@@ -10,6 +10,10 @@ import { eventBus } from "./events/EventBus";
 import dotenv from 'dotenv';
 dotenv.config();
 
+// CRITICAL: Bypass SSL validation for PostgreSQL connections in serverless environments
+process.env.PGSSLMODE = 'no-verify';
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const app = express();
 const port = process.env.PORT || 4000;
 
