@@ -36,9 +36,7 @@ export class GeoService {
             console.log("GeoService connection string (normalized):", connectionString); // Debug line
             this.db = new Pool({
                 connectionString,
-                ssl: {
-                    rejectUnauthorized: false // Accept managed cert chains
-                }
+                ssl: { rejectUnauthorized: false }
             });
         }
         console.log("DB connected"); // Debug line
