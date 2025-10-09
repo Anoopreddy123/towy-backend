@@ -23,11 +23,8 @@ export class GeoService {
         console.log('[GeoService] Connection string (normalized):', connectionString);
         this.db = new Pool({
             connectionString,
-            ssl: { 
-                rejectUnauthorized: false,
-                checkServerIdentity: () => undefined
-            }
-        }); // SSL bypass configured
+            ssl: { rejectUnauthorized: false }
+        });
         console.log("DB connected"); // Debug line
         
         // Initialize tables asynchronously without blocking server startup
