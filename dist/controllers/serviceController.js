@@ -332,7 +332,8 @@ const getServiceRequest = async (req, res) => {
                         if (typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
                             coordinatesParsed = { lat: parsed.lat, lng: parsed.lng };
                         }
-                    } catch (e) {
+                    }
+                    catch (e) {
                         console.warn('Failed to parse coordinates as JSON:', e);
                     }
                 }

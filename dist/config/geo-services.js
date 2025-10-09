@@ -36,10 +36,7 @@ class GeoService {
         console.log('[GeoService] Connection string (normalized):', connectionString);
         this.db = new pg_1.Pool({
             connectionString,
-            ssl: {
-                rejectUnauthorized: false,
-                checkServerIdentity: () => undefined
-            }
+            ssl: { rejectUnauthorized: false }
         });
         console.log("DB connected"); // Debug line
         // Initialize tables asynchronously without blocking server startup
