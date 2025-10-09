@@ -368,12 +368,28 @@ export const getServiceRequest = async (req: Request, res: Response): Promise<vo
             const row = result.rows[0] as any;
             // Parse coordinates string to { lat, lng } when possible
             let coordinatesParsed: { lat: number; lng: number } | null = null;
-            if (typeof row.coordinates === 'string' && row.coordinates.includes(',')) {
-                const parts = row.coordinates.split(',');
-                const lat = parseFloat(parts[0]);
-                const lng = parseFloat(parts[1]);
-                if (Number.isFinite(lat) && Number.isFinite(lng)) {
-                    coordinatesParsed = { lat, lng };
+            if (typeof row.coordinates === 'string') {
+                // Try to parse as JSON first (format: {"lat": 33.79, "lng": -118.13})
+                if (row.coordinates.startsWith('{') && row.coordinates.includes('"lat"') && row.coordinates.includes('"lng"')) {
+                    try {
+                        const parsed = JSON.parse(row.coordinates);
+                        if (typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
+                            coordinatesParsed = { lat: parsed.lat, lng: parsed.lng };
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse coordinates as JSON:', e);
+                    }
+                }
+                // Fallback to comma-separated format (format: "33.79, -118.13")
+                else if (row.coordinates.includes(',') && !coordinatesParsed) {
+                    const parts = row.coordinates.split(',');
+                    if (parts.length === 2) {
+                        const lat = parseFloat(parts[0].trim());
+                        const lng = parseFloat(parts[1].trim());
+                        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                            coordinatesParsed = { lat, lng };
+                        }
+                    }
                 }
             }
 
