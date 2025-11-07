@@ -20,7 +20,7 @@ const port = process.env.PORT || 4000;
 // Define CORS options
 const corsOptions = {
     origin: [
-        'www.towy.me',
+        'https://www.towy.me',
         'https://towy-ui.vercel.app',
         'http://localhost:3000',
         /\.vercel\.app$/
