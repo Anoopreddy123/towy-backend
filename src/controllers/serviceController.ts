@@ -350,68 +350,72 @@ export const getServiceRequest = async (req: Request, res: Response): Promise<vo
     try {
         const { id } = req.params;
         
-        const client = await simpleDbPool.connect();
-        try {
-            const result = await client.query(
-                `SELECT s.*, u.name AS customer_name, u.email AS customer_email
-                 FROM service_requests s
-                 LEFT JOIN users u ON u.id = s.user_id
-                 WHERE s.id = $1`,
-                [id]
-            );
-            
-            if (result.rows.length === 0) {
-                res.status(404).json({ message: "Service request not found" });
-                return;
-            }
-            
-            const row = result.rows[0] as any;
-            // Parse coordinates string to { lat, lng } when possible
-            let coordinatesParsed: { lat: number; lng: number } | null = null;
-            if (typeof row.coordinates === 'string') {
-                // Try to parse as JSON first (format: {"lat": 33.79, "lng": -118.13})
-                if (row.coordinates.startsWith('{') && row.coordinates.includes('"lat"') && row.coordinates.includes('"lng"')) {
-                    try {
-                        const parsed = JSON.parse(row.coordinates);
-                        if (typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
-                            coordinatesParsed = { lat: parsed.lat, lng: parsed.lng };
-                        }
-                    } catch (e) {
-                        console.warn('Failed to parse coordinates as JSON:', e);
-                    }
-                }
-                // Fallback to comma-separated format (format: "33.79, -118.13")
-                else if (row.coordinates.includes(',') && !coordinatesParsed) {
-                    const parts = row.coordinates.split(',');
-                    if (parts.length === 2) {
-                        const lat = parseFloat(parts[0].trim());
-                        const lng = parseFloat(parts[1].trim());
-                        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-                            coordinatesParsed = { lat, lng };
-                        }
-                    }
-                }
-            }
+        initializeGeoService();
+        const service = await geoService.getServiceRequest(id);
 
-            // Shape a response that includes a nested user object and normalized fields
-            const shaped = {
-                id: row.id,
-                serviceType: row.service_type ?? row.serviceType,
-                location: row.location,
-                coordinates: coordinatesParsed,
-                description: row.description,
-                vehicleType: row.vehicle_type ?? row.vehicleType,
-                status: row.status,
-                createdAt: row.created_at ?? row.createdAt,
-                user: row.customer_name || row.customer_email ? {
-                    name: row.customer_name || null,
-                    email: row.customer_email || null
-                } : null
-            };
-            res.json(shaped);
-        } finally {
-            client.release();
+        if (!service) {
+            res.status(404).json({ message: "Service request not found" });
+            return;
         }
+
+        // Parse coordinates string to { lat, lng } when possible
+        let coordinatesParsed: { lat: number; lng: number } | null = null;
+        if (typeof service.coordinates === 'string') {
+            if (service.coordinates.startsWith('{') && service.coordinates.includes('"lat"') && service.coordinates.includes('"lng"')) {
+                try {
+                    const parsed = JSON.parse(service.coordinates);
+                    if (typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
+                        coordinatesParsed = { lat: parsed.lat, lng: parsed.lng };
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse coordinates as JSON:', e);
+                }
+            } else if (service.coordinates.includes(',') && !coordinatesParsed) {
+                const parts = service.coordinates.split(',');
+                if (parts.length === 2) {
+                    const lat = parseFloat(parts[0].trim());
+                    const lng = parseFloat(parts[1].trim());
+                    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                        coordinatesParsed = { lat, lng };
+                    }
+                }
+            }
+        }
+
+        // Optionally fetch user details from the primary DB if available
+        let user: { name: string | null; email: string | null } | null = null;
+        if (service.userId) {
+            const client = await simpleDbPool.connect();
+            try {
+                const userResult = await client.query(
+                    'SELECT name, email FROM users WHERE id = $1',
+                    [service.userId]
+                );
+                if (userResult.rows.length > 0) {
+                    user = {
+                        name: userResult.rows[0].name || null,
+                        email: userResult.rows[0].email || null
+                    };
+                }
+            } finally {
+                client.release();
+            }
+        }
+
+        res.json({
+            id: service.id,
+            serviceType: service.serviceType,
+            location: service.location,
+            coordinates: coordinatesParsed,
+            description: service.description,
+            vehicleType: service.vehicleType,
+            status: service.status,
+            createdAt: service.createdAt,
+            updatedAt: service.updatedAt,
+            quotedPrice: service.quotedPrice,
+            providerId: service.providerId,
+            user
+        });
     } catch (error: any) {
         console.error('Get service request error:', error);
         res.status(500).json({ message: "Error fetching service request" });

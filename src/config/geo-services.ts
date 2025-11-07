@@ -227,7 +227,7 @@ export class GeoService {
 
     async getServiceRequest(requestId: string) {
         const result = await this.db.query(
-            'SELECT * FROM service_requests WHERE id = $1',
+            `SELECT * FROM service_requests WHERE id = $1`,
             [requestId]
         );
         
@@ -245,6 +245,10 @@ export class GeoService {
             vehicleType: row.vehicle_type,
             status: row.status,
             createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            quotedPrice: row.quoted_price,
+            userId: row.user_id,
+            providerId: row.provider_id
         };
     }
 
